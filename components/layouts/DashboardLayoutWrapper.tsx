@@ -17,7 +17,7 @@ export default function DashboardLayoutWrapper({
   const closeMobileSidebar = () => setIsMobileOpen(false);
 
   return (
-    <div className="drawer lg:drawer-open h-screen w-screen overflow-hidden bg-base-200/50">
+    <div className="drawer lg:drawer-open h-screen w-screen overflow-hidden bg-pdam-bg font-sans">
       <input 
         id="dashboard-drawer" 
         type="checkbox" 
@@ -27,14 +27,14 @@ export default function DashboardLayoutWrapper({
       />
       
       {/* Drawer Content Area */}
-      <div className="drawer-content flex flex-col h-full min-w-0 overflow-hidden">
+      <div className="drawer-content flex flex-col h-full min-w-0 overflow-hidden bg-pdam-bg">
         <Header 
           toggleSidebar={toggleSidebar} 
-          openMobileSidebar={openMobileSidebar}
+          openMobileSidebar={openMobileSidebar} 
           isCollapsed={isCollapsed} 
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-pdam-bg">
           <div className="max-w-350 w-full mx-auto">
             {children}
           </div>

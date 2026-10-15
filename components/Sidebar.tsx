@@ -58,24 +58,24 @@ export default function Sidebar({
 
   return (
     <aside 
-      className={`bg-base-100 border-r border-base-200 flex flex-col justify-between shrink-0 h-full transition-all duration-300 z-30 overflow-x-hidden ${
+      className={`bg-white border-r border-slate-200/90 flex flex-col justify-between shrink-0 h-full transition-all duration-300 z-30 overflow-x-hidden ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
       <div className="w-full">
         {/* Header Sidebar (Logo PDAM Tirta) */}
-        <div className={`h-16 px-4 flex items-center border-b border-base-200 ${
+        <div className={`h-16 px-4 flex items-center border-b border-slate-200/90 ${
           isCollapsed ? 'justify-center' : 'justify-between'
         }`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-content shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-pdam-primary flex items-center justify-center text-white shadow-sm shadow-pdam-primary/25 shrink-0">
               <Droplet className="w-5 h-5 fill-current" />
             </div>
             
             {!isCollapsed && (
               <div className="whitespace-nowrap transition-opacity duration-200">
-                <h1 className="font-bold text-sm leading-tight text-base-content">PDAM Tirta</h1>
-                <p className="text-[11px] text-base-content/60">Sistem Meter Air</p>
+                <h1 className="font-bold text-sm leading-tight text-pdam-navy">PDAM Tirta</h1>
+                <p className="text-[11px] text-slate-400 font-medium">Sistem Meter Air</p>
               </div>
             )}
           </div>
@@ -83,7 +83,7 @@ export default function Sidebar({
           {/* Tombol Close khusus Mobile */}
           <button 
             onClick={closeMobileSidebar}
-            className="btn btn-ghost btn-sm btn-square lg:hidden"
+            className="btn btn-ghost btn-sm btn-square lg:hidden text-slate-500 hover:text-pdam-navy hover:bg-pdam-bg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -92,7 +92,7 @@ export default function Sidebar({
           {!isCollapsed && (
             <button 
               onClick={toggleSidebar} 
-              className="btn btn-ghost btn-sm btn-square hidden lg:inline-flex shrink-0"
+              className="btn btn-ghost btn-sm btn-square hidden lg:inline-flex shrink-0 text-slate-500 hover:text-pdam-navy hover:bg-pdam-bg"
               title="Tutup Sidebar"
             >
               <PanelLeftClose className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function Sidebar({
             <div key={groupIdx} className="w-full">
               {/* Label Grup (Tersembunyi bila Sidebar Collapsed) */}
               {!isCollapsed && (
-                <p className="px-3 text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-2">
+                <p className="px-3 text-[10px] font-bold text-pdam-navy/50 uppercase tracking-wider mb-2">
                   {group.groupLabel}
                 </p>
               )}
@@ -128,8 +128,8 @@ export default function Sidebar({
                           : 'w-full px-3.5 py-2.5 gap-3'
                       } ${
                         isActive 
-                          ? 'bg-primary text-primary-content shadow-sm' 
-                          : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'
+                          ? 'bg-pdam-primary text-white shadow-sm shadow-pdam-primary/25' 
+                          : 'text-slate-600 hover:bg-pdam-bg hover:text-pdam-navy'
                       }`}
                     >
                       <Icon className="w-5 h-5 shrink-0" />

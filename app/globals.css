@@ -4,8 +4,26 @@
 }
 
 @theme {
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --color-pdam-primary: #0082C6;
   --color-pdam-navy: #0D5B75;
   --color-pdam-red: #C01C1C;
   --color-pdam-bg: #F4F6F9;
+}
+
+:root, [data-theme="light"] {
+  --color-primary: #0082C6;
+  --color-primary-content: #ffffff;
+  --color-secondary: #0D5B75;
+  --color-secondary-content: #ffffff;
+  --color-error: #C01C1C;
+  --color-error-content: #ffffff;
+  --color-base-100: #ffffff;
+  --color-base-200: #F4F6F9;
+  --color-base-300: #E5E9F0;
+  --color-base-content: #1E293B;
+}
+
+body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
