@@ -1,29 +1,35 @@
 import { PdamDashboardData } from '@/types/pdam';
 
 export const mockPdamData: PdamDashboardData = {
-  totalWaterMeter: 1250,
+  periode: 'Agustus 2026',
+  totalWaterMeter: 1840,
   inventory: {
-    gudang: { count: 320, percentage: 25.6 },
-    terpasang: { count: 810, percentage: 64.8 },
-    rusak: { count: 120, percentage: 9.6 },
+    gudang: { count: 420, percentage: 22.8 },
+    terpasang: { count: 1285, percentage: 69.8 },
+    rusak: { count: 135, percentage: 7.4 },
   },
   tickets: {
-    total: 450,
-    pending: { count: 75, percentage: 16.7 },
-    inProgress: { count: 195, percentage: 43.3 },
-    completed: { count: 180, percentage: 40.0 },
+    total: 320,
+    pending: { count: 21, percentage: 6.6 },
+    inProgress: { count: 32, percentage: 10.0 },
+    completed: { count: 267, percentage: 83.4 }, // Rekapitulasi 267 unit pergantian di bulan Agustus 2026
   },
   branches: [
-    { id: '1', name: 'Cabang Wilayah Utara', sector: 'Sektor A-1', current: 696, target: 800, percentage: 87 },
-    { id: '2', name: 'Cabang Wilayah Timur', sector: 'Sektor B-4', current: 912, target: 1200, percentage: 76 },
-    { id: '3', name: 'Cabang Wilayah Barat', sector: 'Sektor C-2', current: 442, target: 650, percentage: 68 },
-    { id: '4', name: 'Cabang Wilayah Selatan', sector: 'Sektor D-1', current: 540, target: 900, percentage: 60 },
-    { id: '5', name: 'Cabang Wilayah Pusat', sector: 'Sektor E-3', current: 572, target: 1100, percentage: 52 },
+    { id: '1', name: 'Unit Kuningan', code: 'CAB-KNG', sector: 'Wilayah Kota', current: 52, target: 60, percentage: 87 },
+    { id: '2', name: 'Unit Cilimus', code: 'CAB-CLM', sector: 'Wilayah Utara I', current: 44, target: 50, percentage: 88 },
+    { id: '3', name: 'Unit Cigugur', code: 'CAB-CGG', sector: 'Wilayah Barat I', current: 36, target: 40, percentage: 90 },
+    { id: '4', name: 'Unit Ciawi', code: 'CAB-CAW', sector: 'Wilayah Utara II', current: 31, target: 38, percentage: 82 },
+    { id: '5', name: 'Unit Luragung', code: 'CAB-LRG', sector: 'Wilayah Timur I', current: 28, target: 35, percentage: 80 },
+    { id: '6', name: 'Unit Kadugede', code: 'CAB-KDG', sector: 'Wilayah Selatan', current: 25, target: 32, percentage: 78 },
+    { id: '7', name: 'Unit Garawangi', code: 'CAB-GRW', sector: 'Wilayah Tengah', current: 21, target: 28, percentage: 75 },
+    { id: '8', name: 'Unit Japara', code: 'CAB-JPR', sector: 'Wilayah Timur II', current: 16, target: 22, percentage: 73 },
+    { id: '9', name: 'Unit Cidahu', code: 'CAB-CDH', sector: 'Wilayah Timur III', current: 14, target: 20, percentage: 70 },
   ],
   summaryInfo: {
-    totalTarget: 4650,
-    totalRealization: 3162,
-    realizationPercentage: 68.0,
-    deadline: '30 Juni 2024',
+    totalTarget: 325,
+    totalRealization: 267,
+    realizationPercentage: 82.2,
+    deadline: '31 Agustus 2026',
+    totalCabang: 9,
   },
-};
+};

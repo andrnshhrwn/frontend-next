@@ -46,12 +46,14 @@ interface Pengguna {
 }
 
 const initialUsers: Pengguna[] = [
-  { nip: "19880412 201202 1 001", nama: "Agung Pratama, S.T.", email: "agung.pratama@pdamtirta.co.id", telp: "+62 811-2345-9801", peran: "Admin Pusat", unit: "Kantor Pusat (TI & Operasional)", login: "Hari ini, 08:14 WIB", status: "Aktif" },
-  { nip: "19910520 201503 1 004", nama: "Hendra Prasetya, S.Kom.", email: "hendra.p@pdamtirta.co.id", telp: "+62 812-4456-7890", peran: "Admin Cabang", unit: "Wilayah Timur (UPT III)", login: "Kemarin, 16:45 WIB", status: "Aktif" },
-  { nip: "19930811 201701 2 003", nama: "Siti Rahmawati", email: "siti.rahmawati@pdamtirta.co.id", telp: "+62 813-8890-1123", peran: "Admin Cabang", unit: "Wilayah Barat (UPT II)", login: "Hari ini, 07:30 WIB", status: "Aktif" },
-  { nip: "19951204 201902 1 008", nama: "Rudi Hermawan", email: "rudi.hermawan@pdamtirta.co.id", telp: "+62 821-9988-7712", peran: "Teknisi Mobile", unit: "Wilayah Selatan (UPT IV)", login: "Hari ini, 08:35 WIB", status: "Aktif" },
-  { nip: "19960715 202001 1 012", nama: "Bagas Wahyudi", email: "bagas.w@pdamtirta.co.id", telp: "+62 857-3344-5511", peran: "Teknisi Mobile", unit: "Wilayah Utara (UPT I)", login: "03 Mar 2025, 14:12 WIB", status: "Aktif" },
-  { nip: "19901112 201402 2 002", nama: "Dian Anggraini, M.T.", email: "dian.anggraini@pdamtirta.co.id", telp: "+62 812-7711-2234", peran: "Admin Pusat", unit: "Kantor Pusat (Audit & Keamanan)", login: "Hari ini, 06:50 WIB", status: "Aktif" },
+  { nip: "19880412 201202 1 001", nama: "Agung Pratama, S.T.", email: "agung.pratama@tirtakamuning.co.id", telp: "+62 811-2345-9801", peran: "Admin Pusat", unit: "Kantor Pusat Kuningan (TI & Operasional)", login: "Hari ini, 08:14 WIB", status: "Aktif" },
+  { nip: "19910520 201503 1 004", nama: "Hendra Prasetya, S.Kom.", email: "hendra.p@tirtakamuning.co.id", telp: "+62 812-4456-7890", peran: "Admin Cabang", unit: "Unit Kuningan (Cabang Kota)", login: "Kemarin, 16:45 WIB", status: "Aktif" },
+  { nip: "19930811 201701 2 003", nama: "Siti Rahmawati", email: "siti.rahmawati@tirtakamuning.co.id", telp: "+62 813-8890-1123", peran: "Admin Cabang", unit: "Unit Cilimus", login: "Hari ini, 07:30 WIB", status: "Aktif" },
+  { nip: "19951204 201902 1 008", nama: "Dede Suryana", email: "dede.suryana@tirtakamuning.co.id", telp: "+62 821-9988-7712", peran: "Teknisi Mobile", unit: "Unit Kuningan (Cabang Kota)", login: "Hari ini, 08:35 WIB", status: "Aktif" },
+  { nip: "19960715 202001 1 012", nama: "Asep Saepudin", email: "asep.saepudin@tirtakamuning.co.id", telp: "+62 857-3344-5511", peran: "Teknisi Mobile", unit: "Unit Cilimus", login: "Hari ini, 09:12 WIB", status: "Aktif" },
+  { nip: "19901112 201402 2 002", nama: "Dian Anggraini, M.T.", email: "dian.anggraini@tirtakamuning.co.id", telp: "+62 812-7711-2234", peran: "Admin Pusat", unit: "Kantor Pusat Kuningan (Distribusi)", login: "Hari ini, 06:50 WIB", status: "Aktif" },
+  { nip: "19940210 201803 1 009", nama: "Dadang Suhendar", email: "dadang.s@tirtakamuning.co.id", telp: "+62 813-2211-4455", peran: "Admin Cabang", unit: "Unit Ciawi", login: "Kemarin, 14:20 WIB", status: "Aktif" },
+  { nip: "19950314 201901 1 007", nama: "Yudi Herdiana", email: "yudi.h@tirtakamuning.co.id", telp: "+62 822-4411-9988", peran: "Teknisi Mobile", unit: "Unit Luragung", login: "Hari ini, 08:05 WIB", status: "Aktif" },
 ];
 
 const CURRENT_USER_NIP = initialUsers[0].nip; // akun yang sedang login
@@ -59,21 +61,31 @@ const CURRENT_USER_NIP = initialUsers[0].nip; // akun yang sedang login
 const roleFilters = ["Semua Peran", "Admin Pusat", "Admin Cabang", "Teknisi"];
 
 const unitOptions = [
-  "Kantor Pusat (TI & Operasional)",
-  "Kantor Pusat (Audit & Keamanan)",
-  "Wilayah Timur (UPT III)",
-  "Wilayah Barat (UPT II)",
-  "Wilayah Selatan (UPT IV)",
-  "Wilayah Utara (UPT I)",
+  "Kantor Pusat Kuningan (TI & Operasional)",
+  "Kantor Pusat Kuningan (Distribusi)",
+  "Unit Kuningan (Cabang Kota)",
+  "Unit Cilimus",
+  "Unit Cigugur",
+  "Unit Ciawi",
+  "Unit Luragung",
+  "Unit Kadugede",
+  "Unit Garawangi",
+  "Unit Japara",
+  "Unit Cidahu",
 ];
 
 const cabangFilterOptions = [
-  { label: "Semua Cabang", value: "" },
-  { label: "Kantor Pusat", value: "Kantor Pusat" },
-  { label: "Wilayah Timur (UPT III)", value: "Wilayah Timur" },
-  { label: "Wilayah Barat (UPT II)", value: "Wilayah Barat" },
-  { label: "Wilayah Selatan (UPT IV)", value: "Wilayah Selatan" },
-  { label: "Wilayah Utara (UPT I)", value: "Wilayah Utara" },
+  { label: "Semua Unit / Cabang", value: "" },
+  { label: "Kantor Pusat Kuningan", value: "Kantor Pusat" },
+  { label: "Unit Kuningan", value: "Unit Kuningan" },
+  { label: "Unit Cilimus", value: "Unit Cilimus" },
+  { label: "Unit Cigugur", value: "Unit Cigugur" },
+  { label: "Unit Ciawi", value: "Unit Ciawi" },
+  { label: "Unit Luragung", value: "Unit Luragung" },
+  { label: "Unit Kadugede", value: "Unit Kadugede" },
+  { label: "Unit Garawangi", value: "Unit Garawangi" },
+  { label: "Unit Japara", value: "Unit Japara" },
+  { label: "Unit Cidahu", value: "Unit Cidahu" },
 ];
 
 const peranClass: Record<Peran, string> = {
@@ -698,16 +710,22 @@ export default function DataUserPage() {
     <div className="space-y-6">
       {/* Breadcrumb & Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-          Sistem Administrasi / <span className="text-pdam-primary">Hak Akses &amp; Pengguna</span>
+        <p className="text-xs text-slate-500 mb-1">
+          <span className="font-semibold text-pdam-primary">PAM Tirta Kamuning</span> / Master Data /{" "}
+          <span className="text-pdam-primary font-semibold">Data Pengguna &amp; Hak Akses</span>
         </p>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
-              Pengaturan Sistem &amp; Hak Akses
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5 max-w-md">
-              Kelola akun admin, petugas lapangan, dan batasan hak akses pengguna aplikasi manajemen water meter.
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
+                Pengaturan Pengguna &amp; Hak Akses (RBAC)
+              </h1>
+              <span className="badge bg-pdam-primary/10 text-pdam-primary border-pdam-primary/20 text-[10px] font-bold">
+                PRD v1.3.1
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5 max-w-xl">
+              Kelola akun Admin Pusat, Admin Cabang (9 Unit), dan Teknisi Lapangan sesuai arsitektur RBAC PAM Tirta Kamuning tanpa role pimpinan.
             </p>
           </div>
 
@@ -741,7 +759,7 @@ export default function DataUserPage() {
           >
             <Users className="w-4 h-4" />
             Manajemen Pengguna
-            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">32</span>
+            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">34</span>
           </button>
           <button
             onClick={() => setActiveTab("role")}
@@ -750,14 +768,14 @@ export default function DataUserPage() {
             }`}
           >
             <Shield className="w-4 h-4" />
-            Role &amp; Permissions
-            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">3 Tingkat</span>
+            Role &amp; Permissions (RBAC)
+            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">3 Peran</span>
           </button>
         </div>
 
         <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
           <RefreshCw className="w-3.5 h-3.5 text-pdam-primary" />
-          Sinkronisasi LDAP PDAM aktif
+          Sinkronisasi Otentikasi PAM Tirta Kamuning aktif
         </div>
       </div>
 
@@ -769,9 +787,9 @@ export default function DataUserPage() {
             <div className="p-1.5 rounded-md bg-pdam-primary/10 text-pdam-primary"><Users className="w-4 h-4" /></div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-navy tabular-nums">32</span>
-            <span className="text-xs font-bold text-slate-500">User</span>
-            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">5 Unit Wilayah</span>
+            <span className="text-2xl font-black text-pdam-navy tabular-nums">34</span>
+            <span className="text-xs font-bold text-slate-500">Personel</span>
+            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">9 Unit Cabang</span>
           </div>
           <progress className="progress progress-primary h-1 w-full mt-3" value={100} max={100} />
         </div>
@@ -784,9 +802,9 @@ export default function DataUserPage() {
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-pdam-navy tabular-nums">4</span>
             <span className="text-xs font-bold text-slate-500">Akun</span>
-            <span className="badge badge-xs border border-pdam-navy/25 bg-pdam-navy/10 text-pdam-navy font-bold">Superadmin Access</span>
+            <span className="badge badge-xs border border-pdam-navy/25 bg-pdam-navy/10 text-pdam-navy font-bold">Global Monitor</span>
           </div>
-          <progress className="progress h-1 w-full mt-3 text-pdam-navy" value={12.5} max={100} />
+          <progress className="progress h-1 w-full mt-3 text-pdam-navy" value={12} max={100} />
         </div>
 
         <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
@@ -795,11 +813,11 @@ export default function DataUserPage() {
             <div className="p-1.5 rounded-md bg-pdam-primary/10 text-pdam-primary"><Building2 className="w-4 h-4" /></div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-navy tabular-nums">10</span>
-            <span className="text-xs font-bold text-slate-500">Supervisor</span>
-            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">Validasi SPK</span>
+            <span className="text-2xl font-black text-pdam-navy tabular-nums">12</span>
+            <span className="text-xs font-bold text-slate-500">Personel</span>
+            <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">Stok &amp; Validasi</span>
           </div>
-          <progress className="progress progress-info h-1 w-full mt-3" value={31} max={100} />
+          <progress className="progress progress-info h-1 w-full mt-3" value={35} max={100} />
         </div>
 
         <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
@@ -809,12 +827,12 @@ export default function DataUserPage() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-pdam-navy tabular-nums">18</span>
-            <span className="text-xs font-bold text-slate-500">Personel</span>
+            <span className="text-xs font-bold text-slate-500">Teknisi</span>
             <span className="badge badge-xs border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold gap-1">
-              <Smartphone className="w-2.5 h-2.5" /> App Android
+              <Smartphone className="w-2.5 h-2.5" /> App Mobile
             </span>
           </div>
-          <progress className="progress progress-success h-1 w-full mt-3" value={56} max={100} />
+          <progress className="progress progress-success h-1 w-full mt-3" value={53} max={100} />
         </div>
       </div>
 

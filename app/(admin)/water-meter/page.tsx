@@ -1,923 +1,1218 @@
+// "use client";
+
+// import React, { useMemo, useState } from "react";
+// import {
+//   Download,
+//   Plus,
+//   ArrowUpRight,
+//   MapPin,
+//   Layers,
+//   CheckCircle2,
+//   AlertTriangle,
+//   RotateCcw,
+// } from "lucide-react";
+// import {
+//   PageHeader,
+//   StatCard,
+//   StatusBadge,
+//   SearchInput,
+//   SelectDropdown,
+//   Pagination,
+//   ExportModal,
+// } from "@/components/ui";
+// import {
+//   WaterMeterDetailModal,
+//   WaterMeterAddModal,
+//   type WaterMeterItem,
+// } from "@/components/water-meter";
+
+// const INITIAL_METERS: WaterMeterItem[] = [
+//   {
+//     noSeri: "WM-26-001201",
+//     tahunPengadaan: 2026,
+//     merk: "Itron Aquadis+",
+//     dn: "DN 15 (1/2\")",
+//     status: "Tersedia di Unit",
+//     unitCabang: "Unit Kuningan",
+//     lokasi: "Gudang Unit Kuningan",
+//     detail: "Alokasi Pengadaan 2026",
+//   },
+//   {
+//     noSeri: "WM-24-004891",
+//     tahunPengadaan: 2024,
+//     merk: "Linflow Multijet",
+//     dn: "DN 15 (1/2\")",
+//     status: "Terpasang",
+//     unitCabang: "Unit Kuningan",
+//     lokasi: "Bambang Setyawan",
+//     detail: "PLG-KNG-089211 • Jl. Siliwangi No. 120",
+//   },
+//   {
+//     noSeri: "WM-20-031209",
+//     tahunPengadaan: 2020,
+//     merk: "Bar-Meters Precision",
+//     dn: "DN 20 (3/4\")",
+//     status: "Rusak",
+//     unitCabang: "Unit Cigugur",
+//     lokasi: "Gudang Karantina Cigugur",
+//     detail: "Macet / Rotor Aus • Eks: Perum Sukamulya",
+//   },
+//   {
+//     noSeri: "WM-25-019943",
+//     tahunPengadaan: 2025,
+//     merk: "Onda Brass Core",
+//     dn: "DN 15 (1/2\")",
+//     status: "Terpasang",
+//     unitCabang: "Unit Cilimus",
+//     lokasi: "Dewi Anggraini",
+//     detail: "PLG-CLM-067140 • Jl. Raya Bandorasa No. 14",
+//   },
+//   {
+//     noSeri: "WM-26-001202",
+//     tahunPengadaan: 2026,
+//     merk: "Actaris Metron Cyble",
+//     dn: "DN 25 (1\")",
+//     status: "Tersedia di Unit",
+//     unitCabang: "Unit Cilimus",
+//     lokasi: "Gudang Unit Cilimus",
+//     detail: "Alokasi Pengadaan 2026",
+//   },
+//   {
+//     noSeri: "WM-23-077124",
+//     tahunPengadaan: 2023,
+//     merk: "Ningbo LXSG",
+//     dn: "DN 15 (1/2\")",
+//     status: "Terpasang",
+//     unitCabang: "Unit Luragung",
+//     lokasi: "H. Ahmad Fauzi",
+//     detail: "PLG-LRG-031902 • Jl. Raya Luragung No. 45",
+//   },
+//   {
+//     noSeri: "WM-26-001203",
+//     tahunPengadaan: 2026,
+//     merk: "Itron Flostar M",
+//     dn: "DN 20 (3/4\")",
+//     status: "Tersedia di Unit",
+//     unitCabang: "Unit Ciawi",
+//     lokasi: "Gudang Unit Ciawi",
+//     detail: "Alokasi Pengadaan 2026",
+//   },
+//   {
+//     noSeri: "WM-19-055102",
+//     tahunPengadaan: 2019,
+//     merk: "Linflow Classic",
+//     dn: "DN 15 (1/2\")",
+//     status: "Ditarik",
+//     unitCabang: "Unit Kadugede",
+//     lokasi: "Depo Retur Kadugede",
+//     detail: "Kaca Pecah / Buram • Eks: Agus Supriyono",
+//   },
+//   {
+//     noSeri: "WM-24-019944",
+//     tahunPengadaan: 2024,
+//     merk: "Onda Brass Core",
+//     dn: "DN 15 (1/2\")",
+//     status: "Terpasang",
+//     unitCabang: "Unit Garawangi",
+//     lokasi: "Siti Nurhaliza",
+//     detail: "PLG-GRW-077192 • Jl. Raya Garawangi No. 8",
+//   },
+//   {
+//     noSeri: "WM-26-001204",
+//     tahunPengadaan: 2026,
+//     merk: "Itron Aquadis+",
+//     dn: "DN 15 (1/2\")",
+//     status: "Tersedia di Unit",
+//     unitCabang: "Unit Japara",
+//     lokasi: "Gudang Unit Japara",
+//     detail: "Alokasi Pengadaan 2026",
+//   },
+//   {
+//     noSeri: "WM-25-018821",
+//     tahunPengadaan: 2025,
+//     merk: "Linflow Multijet",
+//     dn: "DN 15 (1/2\")",
+//     status: "Terpasang",
+//     unitCabang: "Unit Cidahu",
+//     lokasi: "Dede Suryana",
+//     detail: "PLG-CDH-018821 • Desa Cieurih No. 12",
+//   },
+// ];
+
+// const CABANG_OPTIONS = [
+//   "Unit Kuningan",
+//   "Unit Cilimus",
+//   "Unit Cigugur",
+//   "Unit Ciawi",
+//   "Unit Luragung",
+//   "Unit Kadugede",
+//   "Unit Garawangi",
+//   "Unit Japara",
+//   "Unit Cidahu",
+// ];
+
+// const EXPORT_COLUMNS = [
+//   { id: "noSeri", label: "Nomor Seri" },
+//   { id: "merk", label: "Merk Water Meter" },
+//   { id: "dn", label: "Ukuran DN" },
+//   { id: "tahunPengadaan", label: "Tahun Pengadaan" },
+//   { id: "status", label: "Status" },
+//   { id: "unitCabang", label: "Unit Cabang" },
+//   { id: "lokasi", label: "Lokasi / Pelanggan" },
+//   { id: "detail", label: "Keterangan" },
+// ];
+
+// export default function WaterMeterPage() {
+//   const [data, setData] = useState<WaterMeterItem[]>(INITIAL_METERS);
+//   const [search, setSearch] = useState("");
+//   const [statusFilter, setStatusFilter] = useState("Semua");
+//   const [cabangFilter, setCabangFilter] = useState("Semua");
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const itemsPerPage = 8;
+
+//   // Modals state
+//   const [detailItem, setDetailItem] = useState<WaterMeterItem | null>(null);
+//   const [addModalOpen, setAddModalOpen] = useState(false);
+//   const [exportModalOpen, setExportModalOpen] = useState(false);
+
+//   // Filtered dataset
+//   const filtered = useMemo(() => {
+//     return data.filter((item) => {
+//       const matchSearch =
+//         item.noSeri.toLowerCase().includes(search.toLowerCase()) ||
+//         item.merk.toLowerCase().includes(search.toLowerCase()) ||
+//         item.lokasi.toLowerCase().includes(search.toLowerCase()) ||
+//         item.detail.toLowerCase().includes(search.toLowerCase());
+
+//       const matchStatus = statusFilter === "Semua" || item.status === statusFilter;
+//       const matchCabang = cabangFilter === "Semua" || item.unitCabang === cabangFilter;
+
+//       return matchSearch && matchStatus && matchCabang;
+//     });
+//   }, [data, search, statusFilter, cabangFilter]);
+
+//   // Pagination slice
+//   const totalPages = Math.ceil(filtered.length / itemsPerPage);
+//   const paginated = useMemo(() => {
+//     const start = (currentPage - 1) * itemsPerPage;
+//     return filtered.slice(start, start + itemsPerPage);
+//   }, [filtered, currentPage]);
+
+//   const existingSN = useMemo(() => new Set(data.map((d) => d.noSeri)), [data]);
+
+//   // Inventory stats
+//   const stats = useMemo(() => {
+//     return {
+//       total: 1840,
+//       tersedia: 420,
+//       terpasang: 1285,
+//       rusakTarik: 135,
+//     };
+//   }, []);
+
+//   const handleAddItems = (newItems: WaterMeterItem[]) => {
+//     setData((prev) => [...newItems, ...prev]);
+//   };
+
+//   const handleExport = ({
+//     scope,
+//     selectedCols,
+//   }: {
+//     scope: "filtered" | "all";
+//     selectedCols: string[];
+//   }) => {
+//     const target = scope === "filtered" ? filtered : data;
+//     const header = selectedCols
+//       .map((c) => EXPORT_COLUMNS.find((col) => col.id === c)?.label || c)
+//       .join(",");
+
+//     const rows = target.map((item) => {
+//       return selectedCols
+//         .map((col) => {
+//           const val = String((item as any)[col] ?? "");
+//           return `"${val.replace(/"/g, '""')}"`;
+//         })
+//         .join(",");
+//     });
+
+//     const csvContent = [header, ...rows].join("\n");
+//     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement("a");
+//     a.href = url;
+//     a.download = `water-meter-pam-tirta-kamuning-${Date.now()}.csv`;
+//     a.click();
+//     URL.revokeObjectURL(url);
+//   };
+
+//   return (
+//     <div className="space-y-6">
+//       {/* Page Header */}
+//       <PageHeader
+//         title="Manajemen Water Meter"
+//         subtitle="Inventarisasi nomor seri, spesifikasi teknis, alokasi gudang unit cabang, dan status meteran air."
+//         badge="Inventaris PAM Tirta Kamuning"
+//         badgeVariant="primary"
+//       >
+//         <button
+//           onClick={() => setExportModalOpen(true)}
+//           className="btn btn-sm btn-outline border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+//         >
+//           <Download className="w-3.5 h-3.5" />
+//           Ekspor CSV
+//         </button>
+//         <button
+//           onClick={() => setAddModalOpen(true)}
+//           className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none shadow-xs"
+//         >
+//           <Plus className="w-3.5 h-3.5" />
+//           Tambah Water Meter
+//         </button>
+//       </PageHeader>
+
+//       {/* KPI Stats */}
+//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+//         <StatCard
+//           title="Total Aset Fisik"
+//           value={stats.total.toLocaleString("id-ID")}
+//           subtext="Seluruh unit cabang & pusat"
+//           icon={<Layers className="w-5 h-5" />}
+//           variant="slate"
+//         />
+//         <StatCard
+//           title="Tersedia di Unit"
+//           value={stats.tersedia.toLocaleString("id-ID")}
+//           subtext="Stok siap pasang di gudang unit"
+//           icon={<CheckCircle2 className="w-5 h-5" />}
+//           variant="primary"
+//           onClick={() => setStatusFilter("Tersedia di Unit")}
+//           active={statusFilter === "Tersedia di Unit"}
+//         />
+//         <StatCard
+//           title="Terpasang Aktif"
+//           value={stats.terpasang.toLocaleString("id-ID")}
+//           subtext="Terhubung pada sambungan rumah"
+//           icon={<MapPin className="w-5 h-5" />}
+//           variant="navy"
+//           onClick={() => setStatusFilter("Terpasang")}
+//           active={statusFilter === "Terpasang"}
+//         />
+//         <StatCard
+//           title="Rusak & Ditarik"
+//           value={stats.rusakTarik.toLocaleString("id-ID")}
+//           subtext="Gudang karantina / depo retur"
+//           icon={<RotateCcw className="w-5 h-5" />}
+//           variant="red"
+//           onClick={() => setStatusFilter("Rusak")}
+//           active={statusFilter === "Rusak"}
+//         />
+//       </div>
+
+//       {/* Filter and Search Bar */}
+//       <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-xs">
+//         {/* Status Pill Filters */}
+//         <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-100">
+//           {["Semua", "Tersedia di Unit", "Terpasang", "Rusak", "Ditarik"].map((st) => (
+//             <button
+//               key={st}
+//               onClick={() => {
+//                 setStatusFilter(st);
+//                 setCurrentPage(1);
+//               }}
+//               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === st
+//                   ? "bg-pdam-primary text-white shadow-xs"
+//                   : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+//                 }`}
+//             >
+//               {st}
+//             </button>
+//           ))}
+//         </div>
+
+//         {/* Search & Unit Cabang Dropdown */}
+//         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+//           <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto flex-1">
+//             <SearchInput
+//               value={search}
+//               onChange={(val) => {
+//                 setSearch(val);
+//                 setCurrentPage(1);
+//               }}
+//               placeholder="Cari no. seri, merk, lokasi, atau keterangan..."
+//               className="w-full sm:max-w-md"
+//             />
+//             <SelectDropdown
+//               value={cabangFilter}
+//               onChange={(c) => {
+//                 setCabangFilter(c);
+//                 setCurrentPage(1);
+//               }}
+//               options={["Semua", ...CABANG_OPTIONS]}
+//               icon={<MapPin className="w-3.5 h-3.5" />}
+//               className="w-full sm:w-56"
+//             />
+//           </div>
+
+//           {(search || statusFilter !== "Semua" || cabangFilter !== "Semua") && (
+//             <button
+//               onClick={() => {
+//                 setSearch("");
+//                 setStatusFilter("Semua");
+//                 setCabangFilter("Semua");
+//                 setCurrentPage(1);
+//               }}
+//               className="text-xs text-slate-500 hover:text-pdam-primary font-medium underline shrink-0"
+//             >
+//               Reset Filter
+//             </button>
+//           )}
+//         </div>
+//       </div>
+
+//       {/* Data Table */}
+//       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+//         <div className="overflow-x-auto">
+//           <table className="w-full text-left border-collapse">
+//             <thead>
+//               <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+//                 <th className="py-3 px-4">No. Seri / Pengadaan</th>
+//                 <th className="py-3 px-4">Unit Cabang</th>
+//                 <th className="py-3 px-4">Merk & Ukuran</th>
+//                 <th className="py-3 px-4">Status</th>
+//                 <th className="py-3 px-4">Lokasi / Pelanggan</th>
+//                 <th className="py-3 px-4 text-right">Aksi</th>
+//               </tr>
+//             </thead>
+//             <tbody className="divide-y divide-slate-100 text-xs">
+//               {paginated.map((item) => (
+//                 <tr key={item.noSeri} className="hover:bg-slate-50/60 transition-colors">
+//                   <td className="py-3.5 px-4">
+//                     <span className="font-mono font-bold text-pdam-primary block">
+//                       {item.noSeri}
+//                     </span>
+//                     <span className="text-[10px] text-slate-400 font-normal">
+//                       Pengadaan {item.tahunPengadaan}
+//                     </span>
+//                   </td>
+//                   <td className="py-3.5 px-4 font-semibold text-slate-800">
+//                     <span className="inline-block bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[11px] font-medium">
+//                       {item.unitCabang}
+//                     </span>
+//                   </td>
+//                   <td className="py-3.5 px-4">
+//                     <span className="font-semibold text-slate-800 block">{item.merk}</span>
+//                     <span className="text-[11px] font-mono text-slate-500">{item.dn}</span>
+//                   </td>
+//                   <td className="py-3.5 px-4">
+//                     <StatusBadge status={item.status} size="sm" />
+//                   </td>
+//                   <td className="py-3.5 px-4">
+//                     <span className="font-semibold text-slate-800 block">{item.lokasi}</span>
+//                     <span className="text-[11px] text-slate-500 truncate max-w-xs block">
+//                       {item.detail}
+//                     </span>
+//                   </td>
+//                   <td className="py-3.5 px-4 text-right">
+//                     <button
+//                       onClick={() => setDetailItem(item)}
+//                       className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline inline-flex items-center gap-1 text-xs"
+//                     >
+//                       Detail <ArrowUpRight className="w-3.5 h-3.5" />
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+
+//               {paginated.length === 0 && (
+//                 <tr>
+//                   <td colSpan={6} className="py-12 text-center text-slate-400">
+//                     Tidak ada data water meter yang sesuai dengan kriteria filter.
+//                   </td>
+//                 </tr>
+//               )}
+//             </tbody>
+//           </table>
+//         </div>
+
+//         {/* Pagination */}
+//         <div className="p-4">
+//           <Pagination
+//             currentPage={currentPage}
+//             totalPages={totalPages}
+//             totalItems={filtered.length}
+//             onPageChange={setCurrentPage}
+//             startIndex={(currentPage - 1) * itemsPerPage}
+//             endIndex={Math.min(currentPage * itemsPerPage, filtered.length)}
+//           />
+//         </div>
+//       </div>
+
+//       {/* Modals */}
+//       <WaterMeterDetailModal item={detailItem} onClose={() => setDetailItem(null)} />
+
+//       <WaterMeterAddModal
+//         isOpen={addModalOpen}
+//         onClose={() => setAddModalOpen(false)}
+//         onAdd={handleAddItems}
+//         existingSN={existingSN}
+//         unitAktif="Unit Kuningan"
+//       />
+
+//       <ExportModal
+//         isOpen={exportModalOpen}
+//         onClose={() => setExportModalOpen(false)}
+//         columns={EXPORT_COLUMNS}
+//         totalFiltered={filtered.length}
+//         totalAll={data.length}
+//         onExport={handleExport}
+//       />
+//     </div>
+//   );
+// }
 "use client";
 
+import React, { useMemo, useState } from "react";
 import {
   Download,
   Plus,
-  Search,
-  ChevronLeft,
-  ChevronRight,
   ArrowUpRight,
-  X,
-  FileSpreadsheet,
-  Upload,
   MapPin,
-  History,
   CheckCircle2,
-  AlertCircle,
+  Truck,
+  PackageCheck,
+  Calendar,
+  Building2,
+  FileText,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  PageHeader,
+  StatCard,
+  SearchInput,
+  SelectDropdown,
+  Pagination,
+  ExportModal,
+} from "@/components/ui";
 
-/* ------------------------------------------------------------------ */
-/* Types & data                                                        */
-/* ------------------------------------------------------------------ */
-
-type Status = "Tersedia" | "Terpasang" | "Rusak";
-
-interface WaterMeter {
-  noSeri: string;
-  tera: string;
+// Model Data Catatan Pengiriman Berjenjang (Header-Detail)
+export interface PengirimanDetailItem {
+  idMerk: number;
   merk: string;
-  dn: string;
-  status: Status;
-  lokasi: string;
-  detail: string;
+  ukuranDn: string;
+  jumlah: number;
 }
 
-const initialMeters: WaterMeter[] = [
-  { noSeri: "WM-24-009182", tera: "Tera Sah 2024", merk: "Itron Aquadis+", dn: "DN 15 (1/2\")", status: "Tersedia", lokasi: "Gudang Unit Timur", detail: "Rak A-04" },
-  { noSeri: "WM-22-048910", tera: "Tera Sah 2022", merk: "Linflow Multijet", dn: "DN 15 (1/2\")", status: "Terpasang", lokasi: "Bambang Setyawan", detail: "PLG-089211 • Jl. Rungkut Madya" },
-  { noSeri: "WM-19-031209", tera: "Tera 2019", merk: "Bar-Meters Precision", dn: "DN 20 (3/4\")", status: "Rusak", lokasi: "Gudang Karantina", detail: "Eks: CV. Surya Teknik" },
-  { noSeri: "WM-23-019943", tera: "Tera Sah 2023", merk: "Onda Brass Core", dn: "DN 15 (1/2\")", status: "Terpasang", lokasi: "Dewi Anggraini", detail: "PLG-067140 • Griya Asri Blok D" },
-  { noSeri: "WM-24-009183", tera: "Tera Sah 2024", merk: "Actaris Metron Cyble", dn: "DN 25 (1\")", status: "Tersedia", lokasi: "Gudang Unit Timur", detail: "Rak B-01" },
-  { noSeri: "WM-21-077124", tera: "Tera Sah 2021", merk: "Ningbo LXSG", dn: "DN 15 (1/2\")", status: "Terpasang", lokasi: "H. Ahmad Fauzi", detail: "PLG-031902 • Jl. Semampir Barat" },
-  { noSeri: "WM-24-009184", tera: "Tera Sah 2024", merk: "Itron Flostar M", dn: "DN 20 (3/4\")", status: "Tersedia", lokasi: "Gudang Unit Timur", detail: "Rak A-07" },
-  { noSeri: "WM-20-055102", tera: "Tera 2020", merk: "Linflow Classic", dn: "DN 15 (1/2\")", status: "Rusak", lokasi: "Gudang Karantina", detail: "Eks: Agus Supriyono" },
-  { noSeri: "WM-23-019944", tera: "Tera Sah 2023", merk: "Onda Brass Core", dn: "DN 15 (1/2\")", status: "Terpasang", lokasi: "Siti Nurhaliza", detail: "PLG-077192 • Jl. Dharmahusada Indah" },
-  { noSeri: "WM-24-009185", tera: "Tera Sah 2024", merk: "Itron Aquadis+", dn: "DN 15 (1/2\")", status: "Tersedia", lokasi: "Gudang Unit Timur", detail: "Rak A-05" },
+export interface PengirimanWMItem {
+  idPengiriman: number;
+  noPengiriman: string;
+  tglPengiriman: string;
+  unitTujuan: string;
+  totalWm: number;
+  catatan: string;
+  details: PengirimanDetailItem[];
+}
+
+// Mock Data Initial Catatan Pengiriman dari Pusat
+const INITIAL_PENGIRIMAN: PengirimanWMItem[] = [
+  {
+    idPengiriman: 1,
+    noPengiriman: "SHIP/2026/10/001",
+    tglPengiriman: "2026-10-16",
+    unitTujuan: "Unit Kuningan",
+    totalWm: 500,
+    catatan: "Pengiriman stok WM Triwulan IV untuk Unit Kuningan",
+    details: [
+      { idMerk: 1, merk: "Itron Aquadis+", ukuranDn: "DN 15 (1/2\")", jumlah: 300 },
+      { idMerk: 2, merk: "Linflow Multijet", ukuranDn: "DN 15 (1/2\")", jumlah: 200 },
+    ],
+  },
+  {
+    idPengiriman: 2,
+    noPengiriman: "SHIP/2026/10/002",
+    tglPengiriman: "2026-10-12",
+    unitTujuan: "Unit Cilimus",
+    totalWm: 350,
+    catatan: "Pengalokasian cadangan ganti meter tua Unit Cilimus",
+    details: [
+      { idMerk: 1, merk: "Itron Aquadis+", ukuranDn: "DN 15 (1/2\")", jumlah: 150 },
+      { idMerk: 3, merk: "Onda Brass Core", ukuranDn: "DN 15 (1/2\")", jumlah: 200 },
+    ],
+  },
+  {
+    idPengiriman: 3,
+    noPengiriman: "SHIP/2026/09/015",
+    tglPengiriman: "2026-09-28",
+    unitTujuan: "Unit Cigugur",
+    totalWm: 200,
+    catatan: "Pengiriman tambahan stok rutin",
+    details: [
+      { idMerk: 2, merk: "Linflow Multijet", ukuranDn: "DN 15 (1/2\")", jumlah: 200 },
+    ],
+  },
 ];
 
-const MERK_OPTIONS = [
-  "Itron Aquadis+",
-  "Itron Flostar M",
-  "Linflow Multijet",
-  "Linflow Classic",
-  "Onda Brass Core",
-  "Actaris Metron Cyble",
-  "Bar-Meters Precision",
-  "Ningbo LXSG",
+const CABANG_OPTIONS = [
+  "Unit Kuningan",
+  "Unit Cilimus",
+  "Unit Cigugur",
+  "Unit Ciawi",
+  "Unit Luragung",
+  "Unit Kadugede",
+  "Unit Garawangi",
+  "Unit Japara",
+  "Unit Cidahu",
 ];
-const DN_OPTIONS = ["DN 15 (1/2\")", "DN 20 (3/4\")", "DN 25 (1\")"];
-const TERA_OPTIONS = ["Tera Sah 2026", "Tera Sah 2025", "Tera Sah 2024", "Tera Sah 2023"];
-const UNIT_AKTIF = "Cabang Timur"; // unit milik admin yang login (id_unit)
 
-const statusClass: Record<Status, string> = {
-  Tersedia: "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary",
-  Terpasang: "border-pdam-navy/30 bg-pdam-navy/10 text-pdam-navy",
-  Rusak: "border-pdam-red/30 bg-pdam-red/10 text-pdam-red",
-};
-
-/* ------------------------------------------------------------------ */
-/* Helpers                                                             */
-/* ------------------------------------------------------------------ */
-
-function downloadFile(filename: string, content: string, mime: string) {
-  const blob = new Blob(["\uFEFF" + content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
-
-function parseCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') {
-      if (inQ && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else inQ = !inQ;
-    } else if (c === "," && !inQ) {
-      out.push(cur.trim());
-      cur = "";
-    } else cur += c;
-  }
-  out.push(cur.trim());
-  return out;
-}
-
-/* ------------------------------------------------------------------ */
-/* Reusable modal shell                                                */
-/* ------------------------------------------------------------------ */
-
-function Modal({
-  title,
-  subtitle,
-  onClose,
-  children,
-  footer,
-  wide,
-}: {
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: ReactNode;
-  footer?: ReactNode;
-  wide?: boolean;
-}) {
-  return (
-    <div className="modal modal-open">
-      <div className={`modal-box bg-white p-0 ${wide ? "max-w-2xl" : "max-w-md"}`}>
-        <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-slate-200">
-          <div>
-            <h3 className="font-extrabold text-pdam-navy">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
-          </div>
-          <button onClick={onClose} className="btn btn-ghost btn-xs btn-square text-slate-400">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
-        {footer && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-pdam-bg/50 flex justify-end gap-2">
-            {footer}
-          </div>
-        )}
-      </div>
-      <div className="modal-backdrop bg-black/40" onClick={onClose} />
-    </div>
-  );
-}
-
-const labelCls = "text-[11px] font-bold text-pdam-navy uppercase mb-1 block";
-const inputCls =
-  "input input-bordered input-sm w-full text-xs border-slate-200 focus:border-pdam-primary";
-const selectCls =
-  "select select-bordered select-sm w-full text-xs border-slate-200 bg-white focus:border-pdam-primary";
-const btnGhost =
-  "btn btn-sm btn-ghost border border-slate-200 normal-case font-semibold text-slate-600";
-const btnPrimary =
-  "btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white border-0 normal-case font-semibold";
-
-/* ------------------------------------------------------------------ */
-/* Modal: Export                                                       */
-/* ------------------------------------------------------------------ */
-
-function ExportModal({
-  onClose,
-  allData,
-  filteredData,
-}: {
-  onClose: () => void;
-  allData: WaterMeter[];
-  filteredData: WaterMeter[];
-}) {
-  const [format, setFormat] = useState<"csv" | "xlsx">("csv");
-  const [scope, setScope] = useState<"filter" | "all">("filter");
-  const [cols, setCols] = useState({
-    noSeri: true,
-    tera: true,
-    merk: true,
-    dn: true,
-    status: true,
-    lokasi: true,
-    detail: true,
-  });
-
-  const rows = scope === "filter" ? filteredData : allData;
-  const colLabels: Record<keyof typeof cols, string> = {
-    noSeri: "No. Seri (SN)",
-    tera: "Tera",
-    merk: "Merk",
-    dn: "Ukuran (DN)",
-    status: "Status",
-    lokasi: "Lokasi / Pelanggan",
-    detail: "Keterangan",
-  };
-  const activeKeys = (Object.keys(cols) as (keyof typeof cols)[]).filter((k) => cols[k]);
-
-  const handleExport = () => {
-    const header = activeKeys.map((k) => csvCell(colLabels[k])).join(",");
-    const body = rows.map((r) => activeKeys.map((k) => csvCell(r[k])).join(",")).join("\n");
-    const stamp = new Date().toISOString().slice(0, 10);
-
-    if (format === "csv") {
-      downloadFile(`water-meter-${stamp}.csv`, `${header}\n${body}`, "text/csv;charset=utf-8");
-    } else {
-      // TODO: ganti dengan library SheetJS (xlsx) untuk file .xlsx asli.
-      // Sementara: tab-separated, dibuka Excel sebagai .xls.
-      const tsv = [activeKeys.map((k) => colLabels[k]).join("\t")]
-        .concat(rows.map((r) => activeKeys.map((k) => r[k]).join("\t")))
-        .join("\n");
-      downloadFile(`water-meter-${stamp}.xls`, tsv, "application/vnd.ms-excel");
-    }
-    onClose();
-  };
-
-  return (
-    <Modal
-      title="Export Data Water Meter"
-      subtitle="Pilih format, cakupan data, dan kolom yang akan diunduh."
-      onClose={onClose}
-      footer={
-        <>
-          <button onClick={onClose} className={btnGhost}>
-            Batal
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={activeKeys.length === 0 || rows.length === 0}
-            className={btnPrimary}
-          >
-            <Download className="w-4 h-4" /> Unduh {rows.length} Data
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-5">
-        <div>
-          <span className={labelCls}>Format File</span>
-          <div className="grid grid-cols-2 gap-2">
-            {(["csv", "xlsx"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f)}
-                className={`flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold text-left transition-colors ${
-                  format === f
-                    ? "border-pdam-primary bg-pdam-primary/5 text-pdam-primary"
-                    : "border-slate-200 text-slate-600 hover:bg-pdam-bg"
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                {f === "csv" ? "CSV (.csv)" : "Excel (.xls)"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span className={labelCls}>Cakupan Data</span>
-          <div className="space-y-2 text-xs">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                className="radio radio-xs radio-primary"
-                checked={scope === "filter"}
-                onChange={() => setScope("filter")}
-              />
-              Sesuai filter aktif ({filteredData.length} data)
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                className="radio radio-xs radio-primary"
-                checked={scope === "all"}
-                onChange={() => setScope("all")}
-              />
-              Semua data ({allData.length} data dimuat)
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <span className={labelCls}>Kolom</span>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {(Object.keys(cols) as (keyof typeof cols)[]).map((k) => (
-              <label key={k} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-xs checkbox-primary"
-                  checked={cols[k]}
-                  onChange={(e) => setCols({ ...cols, [k]: e.target.checked })}
-                />
-                {colLabels[k]}
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Registrasi SN Baru (single + bulk CSV)                       */
-/* ------------------------------------------------------------------ */
-
-function RegistrasiModal({
-  onClose,
-  existingSN,
-  onAdd,
-}: {
-  onClose: () => void;
-  existingSN: Set<string>;
-  onAdd: (items: WaterMeter[]) => void;
-}) {
-  const [tab, setTab] = useState<"single" | "bulk">("single");
-
-  // single
-  const [form, setForm] = useState({
-    noSeri: "",
-    merk: "",
-    dn: DN_OPTIONS[0],
-    tera: TERA_OPTIONS[0],
-    rak: "",
-  });
-  const [error, setError] = useState("");
-
-  // bulk
-  const [fileName, setFileName] = useState("");
-  const [parsed, setParsed] = useState<WaterMeter[]>([]);
-  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
-
-  const handleSingle = () => {
-    const sn = form.noSeri.trim().toUpperCase();
-    if (!sn) return setError("Nomor seri wajib diisi.");
-    if (sn.length > 50) return setError("Nomor seri maksimal 50 karakter.");
-    if (existingSN.has(sn)) return setError("Nomor seri sudah terdaftar di database.");
-    if (!form.merk) return setError("Pilih merk water meter.");
-    onAdd([
-      {
-        noSeri: sn,
-        tera: form.tera,
-        merk: form.merk,
-        dn: form.dn,
-        status: "Tersedia",
-        lokasi: `Gudang Unit ${UNIT_AKTIF.replace("Cabang ", "")}`,
-        detail: form.rak ? `Rak ${form.rak}` : "-",
-      },
-    ]);
-    onClose();
-  };
-
-  const templateCsv =
-    "serial_number,merk,ukuran_dn,tera,rak\n" +
-    `WM-26-000001,Itron Aquadis+,"DN 15 (1/2"")",Tera Sah 2026,A-01\n`;
-
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    setFileName(file.name);
-    const text = (await file.text()).replace(/^\uFEFF/, "");
-    const lines = text.split(/\r?\n/).filter((l) => l.trim());
-    const errs: string[] = [];
-    const items: WaterMeter[] = [];
-    const seen = new Set<string>();
-
-    lines.slice(1).forEach((line, i) => {
-      const [sn, merk, dn, tera, rak] = parseCsvLine(line);
-      const rowNo = i + 2;
-      const snUp = (sn || "").toUpperCase();
-      if (!snUp) return errs.push(`Baris ${rowNo}: nomor seri kosong.`);
-      if (existingSN.has(snUp) || seen.has(snUp))
-        return errs.push(`Baris ${rowNo}: SN ${snUp} duplikat.`);
-      if (!merk) return errs.push(`Baris ${rowNo}: merk kosong.`);
-      seen.add(snUp);
-      items.push({
-        noSeri: snUp,
-        merk,
-        dn: dn || DN_OPTIONS[0],
-        tera: tera || TERA_OPTIONS[0],
-        status: "Tersedia",
-        lokasi: `Gudang Unit ${UNIT_AKTIF.replace("Cabang ", "")}`,
-        detail: rak ? `Rak ${rak}` : "-",
-      });
-    });
-    setParsed(items);
-    setBulkErrors(errs);
-  };
-
-  const handleBulk = () => {
-    if (parsed.length === 0) return;
-    onAdd(parsed);
-    onClose();
-  };
-
-  return (
-    <Modal
-      wide
-      title="Registrasi SN Baru"
-      subtitle={`Daftarkan stok water meter dari Pusat ke inventori ${UNIT_AKTIF}. Status awal: Tersedia di unit.`}
-      onClose={onClose}
-      footer={
-        <>
-          <button onClick={onClose} className={btnGhost}>
-            Batal
-          </button>
-          {tab === "single" ? (
-            <button onClick={handleSingle} className={btnPrimary}>
-              <Plus className="w-4 h-4" /> Simpan SN
-            </button>
-          ) : (
-            <button onClick={handleBulk} disabled={parsed.length === 0} className={btnPrimary}>
-              <Upload className="w-4 h-4" /> Import {parsed.length} SN
-            </button>
-          )}
-        </>
-      }
-    >
-      <div className="inline-flex p-1 rounded-lg bg-pdam-bg border border-slate-200 mb-5">
-        {(["single", "bulk"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`btn btn-xs normal-case font-semibold border-0 ${
-              tab === t ? "bg-white text-pdam-primary shadow-xs" : "bg-transparent text-slate-500"
-            }`}
-          >
-            {t === "single" ? "Input Satuan" : "Upload Massal (CSV)"}
-          </button>
-        ))}
-      </div>
-
-      {tab === "single" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label className={labelCls}>Nomor Seri (SN)</label>
-            <input
-              className={`${inputCls} font-mono`}
-              placeholder="contoh: WM-26-000001"
-              value={form.noSeri}
-              onChange={(e) => setForm({ ...form, noSeri: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Merk</label>
-            <select
-              className={selectCls}
-              value={form.merk}
-              onChange={(e) => setForm({ ...form, merk: e.target.value })}
-            >
-              <option value="">Pilih merk...</option>
-              {MERK_OPTIONS.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Ukuran (DN)</label>
-            <select
-              className={selectCls}
-              value={form.dn}
-              onChange={(e) => setForm({ ...form, dn: e.target.value })}
-            >
-              {DN_OPTIONS.map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Tera</label>
-            <select
-              className={selectCls}
-              value={form.tera}
-              onChange={(e) => setForm({ ...form, tera: e.target.value })}
-            >
-              {TERA_OPTIONS.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Lokasi Rak (opsional)</label>
-            <input
-              className={inputCls}
-              placeholder="contoh: A-04"
-              value={form.rak}
-              onChange={(e) => setForm({ ...form, rak: e.target.value })}
-            />
-          </div>
-          <div className="sm:col-span-2 rounded-lg bg-pdam-bg border border-slate-200 p-3 text-[11px] text-slate-600 flex gap-4">
-            <span>
-              Unit: <strong className="text-pdam-navy">{UNIT_AKTIF}</strong>
-            </span>
-            <span>
-              Status awal: <strong className="text-pdam-primary">Tersedia di unit</strong>
-            </span>
-          </div>
-          {error && (
-            <p className="sm:col-span-2 text-xs text-pdam-red font-medium flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> {error}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">
-              Kolom: serial_number, merk, ukuran_dn, tera, rak
-            </span>
-            <button
-              onClick={() => downloadFile("template-registrasi-wm.csv", templateCsv, "text/csv")}
-              className="text-pdam-primary font-semibold hover:underline"
-            >
-              Unduh template CSV
-            </button>
-          </div>
-
-          <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 hover:border-pdam-primary hover:bg-pdam-primary/5 transition-colors p-6 cursor-pointer text-center">
-            <Upload className="w-6 h-6 text-pdam-primary" />
-            <span className="text-xs font-semibold text-pdam-navy">
-              {fileName || "Klik untuk memilih file CSV"}
-            </span>
-            <span className="text-[10px] text-slate-400">Format .csv, baris pertama sebagai header</span>
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-            />
-          </label>
-
-          {fileName && (
-            <div className="space-y-2 text-xs">
-              <p className="flex items-center gap-1.5 text-pdam-primary font-semibold">
-                <CheckCircle2 className="w-4 h-4" /> {parsed.length} baris valid siap diimport
-              </p>
-              {bulkErrors.length > 0 && (
-                <div className="rounded-lg border border-pdam-red/30 bg-pdam-red/5 p-3 max-h-28 overflow-y-auto space-y-0.5">
-                  <p className="font-semibold text-pdam-red flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> {bulkErrors.length} baris dilewati
-                  </p>
-                  {bulkErrors.map((e, i) => (
-                    <p key={i} className="text-[11px] text-slate-600">
-                      {e}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Detail                                                       */
-/* ------------------------------------------------------------------ */
-
-function DetailModal({ item, onClose }: { item: WaterMeter; onClose: () => void }) {
-  const riwayat = useMemo(() => {
-    const base = [
-      { judul: "Diregistrasi ke inventori unit", ket: `Status: Tersedia di unit • ${UNIT_AKTIF}`, waktu: "Tgl input (tgl_input)" },
-    ];
-    if (item.status === "Terpasang")
-      base.push({ judul: "Dipasang ke pelanggan", ket: `${item.lokasi} • ${item.detail}`, waktu: "Tgl penggantian" });
-    if (item.status === "Rusak")
-      base.push({ judul: "Ditandai rusak / ditarik", ket: `${item.lokasi} • ${item.detail}`, waktu: "Tgl penggantian" });
-    return base;
-  }, [item]);
-
-  const Row = ({ k, v, mono }: { k: string; v: ReactNode; mono?: boolean }) => (
-    <div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{k}</p>
-      <p className={`text-xs font-semibold text-pdam-navy mt-0.5 ${mono ? "font-mono" : ""}`}>{v}</p>
-    </div>
-  );
-
-  return (
-    <Modal
-      wide
-      title="Detail Water Meter"
-      subtitle="Informasi fisik, status, dan riwayat lokasi nomor seri."
-      onClose={onClose}
-      footer={
-        <button onClick={onClose} className={btnGhost}>
-          Tutup
-        </button>
-      }
-    >
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="font-mono font-bold text-lg text-pdam-primary">{item.noSeri}</p>
-          <p className="text-[11px] text-slate-500">{item.tera}</p>
-        </div>
-        <span className={`badge badge-md font-bold border ${statusClass[item.status]}`}>
-          {item.status}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-5 border-b border-slate-200">
-        <Row k="Merk" v={item.merk} />
-        <Row k="Ukuran" v={item.dn} mono />
-        <Row k="Unit Cabang" v={UNIT_AKTIF} />
-      </div>
-
-      <div className="py-5 border-b border-slate-200">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-          <MapPin className="w-3 h-3" /> Lokasi / Pelanggan Saat Ini
-        </p>
-        <p className="text-xs font-bold text-pdam-navy">{item.lokasi}</p>
-        <p className="text-[11px] text-slate-500">{item.detail}</p>
-      </div>
-
-      <div className="pt-5">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
-          <History className="w-3 h-3" /> Riwayat
-        </p>
-        <ul className="space-y-3">
-          {riwayat.map((r, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-1 w-2 h-2 rounded-full bg-pdam-primary shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-pdam-navy">{r.judul}</p>
-                <p className="text-[11px] text-slate-500">{r.ket}</p>
-                <p className="text-[10px] text-slate-400">{r.waktu}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Modal>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Page                                                                */
-/* ------------------------------------------------------------------ */
-
-type StatusFilter = "Semua" | Status;
+const EXPORT_COLUMNS = [
+  { id: "noPengiriman", label: "No. Pengiriman" },
+  { id: "tglPengiriman", label: "Tanggal" },
+  { id: "unitTujuan", label: "Unit Tujuan" },
+  { id: "totalWm", label: "Total WM" },
+  { id: "catatan", label: "Catatan" },
+];
 
 export default function WaterMeterPage() {
-  const [meters, setMeters] = useState<WaterMeter[]>(initialMeters);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
+  const [activeTab, setActiveTab] = useState<"stok" | "pengiriman">("stok");
+  const [pengirimanList, setPengirimanList] = useState<PengirimanWMItem[]>(INITIAL_PENGIRIMAN);
   const [search, setSearch] = useState("");
-  const [merkFilter, setMerkFilter] = useState("");
-  const [dnFilter, setDnFilter] = useState("");
+  const [cabangFilter, setCabangFilter] = useState("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
-  const [showExport, setShowExport] = useState(false);
-  const [showRegistrasi, setShowRegistrasi] = useState(false);
-  const [detailItem, setDetailItem] = useState<WaterMeter | null>(null);
+  // Modals state
+  const [addPengirimanOpen, setAddPengirimanOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [selectedPengiriman, setSelectedPengiriman] = useState<PengirimanWMItem | null>(null);
 
-  const filtered = meters.filter((m) => {
-    const q = search.toLowerCase();
-    return (
-      (statusFilter === "Semua" || m.status === statusFilter) &&
-      (!merkFilter || m.merk === merkFilter) &&
-      (!dnFilter || m.dn === dnFilter) &&
-      (!q ||
-        m.noSeri.toLowerCase().includes(q) ||
-        m.lokasi.toLowerCase().includes(q) ||
-        m.detail.toLowerCase().includes(q))
-    );
-  });
+  // Form State Catatan Pengiriman Berjenjang Baru (Pusat)
+  const [formNoPengiriman, setFormNoPengiriman] = useState("");
+  const [formTglPengiriman, setFormTglPengiriman] = useState("2026-10-16");
+  const [formUnitTujuan, setFormUnitTujuan] = useState("Unit Kuningan");
+  const [formCatatan, setFormCatatan] = useState("");
+  const [formDetails, setFormDetails] = useState<PengirimanDetailItem[]>([
+    { idMerk: 1, merk: "Itron Aquadis+", ukuranDn: "DN 15 (1/2\")", jumlah: 100 },
+  ]);
 
-  const resetFilter = () => {
-    setStatusFilter("Semua");
-    setSearch("");
-    setMerkFilter("");
-    setDnFilter("");
+  // Total perhitungan pengiriman
+  const totalPengirimanWM = useMemo(() => {
+    return pengirimanList.reduce((acc, curr) => acc + curr.totalWm, 0);
+  }, [pengirimanList]);
+
+  // Filtered dataset pengiriman
+  const filteredPengiriman = useMemo(() => {
+    return pengirimanList.filter((item) => {
+      const matchSearch =
+        item.noPengiriman.toLowerCase().includes(search.toLowerCase()) ||
+        item.unitTujuan.toLowerCase().includes(search.toLowerCase()) ||
+        item.catatan.toLowerCase().includes(search.toLowerCase());
+
+      const matchCabang = cabangFilter === "Semua" || item.unitTujuan === cabangFilter;
+
+      return matchSearch && matchCabang;
+    });
+  }, [pengirimanList, search, cabangFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPengiriman.length / itemsPerPage);
+  const paginatedPengiriman = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredPengiriman.slice(start, start + itemsPerPage);
+  }, [filteredPengiriman, currentPage]);
+
+  // Handle Tambah Detail Merk pada Form Pengiriman
+  const handleAddDetailRow = () => {
+    setFormDetails((prev) => [
+      ...prev,
+      { idMerk: 1, merk: "Itron Aquadis+", ukuranDn: "DN 15 (1/2\")", jumlah: 50 },
+    ]);
   };
 
-  const tabs: { label: string; value: StatusFilter; count: string }[] = [
-    { label: "Semua Unit", value: "Semua", count: "1.250" },
-    { label: "Tersedia di Gudang", value: "Tersedia", count: "320" },
-    { label: "Terpasang Aktif", value: "Terpasang", count: "810" },
-    { label: "Rusak / Tarik", value: "Rusak", count: "120" },
-  ];
+  const handleDetailChange = (index: number, field: keyof PengirimanDetailItem, value: any) => {
+    setFormDetails((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleRemoveDetailRow = (index: number) => {
+    setFormDetails((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Submit Catatan Pengiriman dari Pusat (Langsung Catat)
+  const handleSubmitPengiriman = (e: React.FormEvent) => {
+    e.preventDefault();
+    const totalWm = formDetails.reduce((sum, item) => sum + Number(item.jumlah || 0), 0);
+
+    const newItem: PengirimanWMItem = {
+      idPengiriman: Date.now(),
+      noPengiriman: formNoPengiriman || `SHIP/2026/10/${Math.floor(100 + Math.random() * 900)}`,
+      tglPengiriman: formTglPengiriman,
+      unitTujuan: formUnitTujuan,
+      totalWm,
+      catatan: formCatatan,
+      details: formDetails,
+    };
+
+    setPengirimanList((prev) => [newItem, ...prev]);
+    setAddPengirimanOpen(false);
+    // Reset Form
+    setFormNoPengiriman("");
+    setFormCatatan("");
+    setFormDetails([{ idMerk: 1, merk: "Itron Aquadis+", ukuranDn: "DN 15 (1/2\")", jumlah: 100 }]);
+  };
+
+  // Handle Ekspor CSV
+  const handleExport = ({
+    scope,
+    selectedCols,
+  }: {
+    scope: "filtered" | "all";
+    selectedCols: string[];
+  }) => {
+    const target = scope === "filtered" ? filteredPengiriman : pengirimanList;
+    const header = selectedCols
+      .map((c) => EXPORT_COLUMNS.find((col) => col.id === c)?.label || c)
+      .join(",");
+
+    const rows = target.map((item) => {
+      return selectedCols
+        .map((col) => {
+          const val = String((item as any)[col] ?? "");
+          return `"${val.replace(/"/g, '""')}"`;
+        })
+        .join(",");
+    });
+
+    const csvContent = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `catatan-pengiriman-wm-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb & Header Title */}
-      <div>
-        <p className="text-xs text-slate-500 mb-1">
-          PDAM Tirta / Operasional /{" "}
-          <span className="text-pdam-primary font-semibold">Inventori Stok</span>
-        </p>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
-              Inventori &amp; Monitoring Water Meter
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pemantauan status fisik dan riwayat lokasi nomor seri water meter.
-            </p>
-          </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Monitoring & Pengiriman Water Meter"
+        subtitle="Pencatatan pengiriman Water Meter dari Pusat ke Cabang dan monitoring ketersediaan stok unit secara real-time."
+        badge="PAM Tirta Kamuning - Pusat"
+        badgeVariant="primary"
+      >
+        <button
+          onClick={() => setExportModalOpen(true)}
+          className="btn btn-sm btn-outline border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Ekspor CSV
+        </button>
+        <button
+          onClick={() => setAddPengirimanOpen(true)}
+          className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Catat Pengiriman WM (Pusat)
+        </button>
+      </PageHeader>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowExport(true)}
-              className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs"
-            >
-              <Download className="w-4 h-4 text-pdam-primary" />
-              <span>Export Data (CSV/Excel)</span>
-            </button>
-            <button
-              onClick={() => setShowRegistrasi(true)}
-              className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white font-semibold normal-case border-0 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Registrasi SN Baru</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Kartu Statistik Atas */}
+      {/* KPI Stats Monitoring */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Total Unit Terdata
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-navy tabular-nums">1.250</span>
-            <span className="text-[11px] text-slate-500">Unit Fisik</span>
-          </div>
-        </div>
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <p className="text-[10px] font-bold text-pdam-primary uppercase tracking-wider mb-1">
-            Tersedia di Cabang
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-primary tabular-nums">320</span>
-            <span className="text-[11px] text-pdam-primary font-medium">Siap Pasang</span>
-          </div>
-        </div>
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <p className="text-[10px] font-bold text-pdam-navy uppercase tracking-wider mb-1">
-            Terpasang Aktif
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-navy tabular-nums">810</span>
-            <span className="text-[11px] text-pdam-navy font-medium">Pelanggan Aktif</span>
-          </div>
-        </div>
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <p className="text-[10px] font-bold text-pdam-red uppercase tracking-wider mb-1">
-            Rusak / Afkir / Tarik
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-red tabular-nums">120</span>
-            <span className="text-[11px] text-pdam-red font-medium">Perlu Tindakan</span>
-          </div>
-        </div>
+        <StatCard
+          title="Total WM Dikirim Pusat"
+          value={totalPengirimanWM.toLocaleString("id-ID")}
+          subtext="Akumulasi pengiriman ke seluruh cabang"
+          icon={<Truck className="w-5 h-5" />}
+          variant="slate"
+        />
+        <StatCard
+          title="Tersedia di Unit (Sisa Stok)"
+          value={(totalPengirimanWM - 680).toLocaleString("id-ID")}
+          subtext="Siap untuk penugasan penggantian"
+          icon={<PackageCheck className="w-5 h-5" />}
+          variant="primary"
+        />
+        <StatCard
+          title="Terpasang di Pelanggan"
+          value="680"
+          subtext="Telah divalidasi BAP oleh Pusat"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          variant="navy"
+        />
+        <StatCard
+          title="Unit Cabang Penerima"
+          value="9 Cabang"
+          subtext="Seluruh unit kerja aktif"
+          icon={<Building2 className="w-5 h-5" />}
+          variant="slate"
+        />
       </div>
 
-      {/* Filter & Bar Pencarian */}
-      <div className="card bg-white border border-slate-200/90 shadow-xs p-5 space-y-4">
-        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-200">
-          {tabs.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => setStatusFilter(t.value)}
-              className={`btn btn-sm font-medium normal-case ${
-                statusFilter === t.value
-                  ? "bg-pdam-primary hover:bg-pdam-navy text-white border-0 shadow-xs"
-                  : "btn-ghost bg-pdam-bg hover:bg-slate-200 border border-slate-200/80 text-slate-700"
-              }`}
-            >
-              {t.label}{" "}
-              <span
-                className={
-                  statusFilter === t.value
-                    ? "bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-1"
-                    : "text-slate-400 ml-1"
-                }
-              >
-                {t.count}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* Navigation Tabs */}
+      <div className="border-b border-slate-200 flex gap-4">
+        <button
+          onClick={() => setActiveTab("stok")}
+          className={`pb-3 px-1 text-sm font-semibold transition border-b-2 ${
+            activeTab === "stok"
+              ? "border-pdam-primary text-pdam-primary"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Monitoring Ketersediaan Stok Unit
+        </button>
+        <button
+          onClick={() => setActiveTab("pengiriman")}
+          className={`pb-3 px-1 text-sm font-semibold transition border-b-2 ${
+            activeTab === "pengiriman"
+              ? "border-pdam-primary text-pdam-primary"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Catatan Riwayat Pengiriman (Pusat)
+        </button>
+      </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-600">
-          <span>
-            Filter Aktif:{" "}
-            <strong className="text-pdam-navy">
-              {merkFilter || "Semua Merk"}, {dnFilter || "Semua Ukuran"}
-            </strong>
-            <button
-              onClick={resetFilter}
-              className="text-pdam-primary hover:text-pdam-navy underline ml-2"
-            >
-              Reset Filter
-            </button>
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
+      {/* TAB 1: MONITORING STOK UNIT CABANG */}
+      {activeTab === "stok" && (
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <SearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari Nomor Seri (SN), ID Pelanggan, atau Nama..."
-              className="input input-bordered input-sm w-full pl-9 text-xs bg-pdam-bg/50 border-slate-200 focus:border-pdam-primary focus:bg-white"
+              onChange={setSearch}
+              placeholder="Cari unit cabang..."
+              className="w-full sm:max-w-md"
+            />
+            <SelectDropdown
+              value={cabangFilter}
+              onChange={setCabangFilter}
+              options={["Semua", ...CABANG_OPTIONS]}
+              icon={<MapPin className="w-3.5 h-3.5" />}
+              className="w-full sm:w-56"
             />
           </div>
-          <select
-            value={merkFilter}
-            onChange={(e) => setMerkFilter(e.target.value)}
-            className="select select-bordered select-sm w-full text-xs border-slate-200 bg-white text-slate-700"
-          >
-            <option value="">Semua Merk Water Meter</option>
-            {MERK_OPTIONS.map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </select>
-          <select
-            value={dnFilter}
-            onChange={(e) => setDnFilter(e.target.value)}
-            className="select select-bordered select-sm w-full text-xs border-slate-200 bg-white text-slate-700"
-          >
-            <option value="">Semua Ukuran (DN)</option>
-            {DN_OPTIONS.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
 
-      {/* Tabel Data Water Meter */}
-      <div className="card bg-white border border-slate-200/90 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table table-sm w-full">
-            <thead>
-              <tr className="bg-pdam-bg text-pdam-navy text-[11px] uppercase tracking-wider border-b border-slate-200 font-bold">
-                <th className="py-3.5 pl-5">No. Seri (SN)</th>
-                <th className="py-3.5">Merk &amp; Ukuran</th>
-                <th className="py-3.5">Status</th>
-                <th className="py-3.5">Lokasi / Pelanggan</th>
-                <th className="py-3.5 text-right pr-5">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {filtered.map((item) => (
-                <tr key={item.noSeri} className="hover:bg-pdam-bg/60 transition-colors">
-                  <td className="py-3.5 pl-5 font-bold">
-                    <span className="text-pdam-primary font-mono block">{item.noSeri}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">{item.tera}</span>
-                  </td>
-                  <td className="py-3.5">
-                    <span className="font-semibold text-pdam-navy block">{item.merk}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">{item.dn}</span>
-                  </td>
-                  <td className="py-3.5">
-                    <span className={`badge badge-sm font-bold border ${statusClass[item.status]}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5">
-                    <span className="font-semibold text-pdam-navy block">{item.lokasi}</span>
-                    <span className="text-[10px] text-slate-500">{item.detail}</span>
-                  </td>
-                  <td className="py-3.5 text-right pr-5">
-                    <button
-                      onClick={() => setDetailItem(item)}
-                      className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline flex items-center justify-end gap-0.5 ml-auto"
-                    >
-                      Detail <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-400">
-                    Tidak ada water meter yang sesuai filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CABANG_OPTIONS.filter((c) => cabangFilter === "Semua" || c === cabangFilter).map(
+              (cabang) => {
+                const totalDikirim = pengirimanList
+                  .filter((p) => p.unitTujuan === cabang)
+                  .reduce((sum, item) => sum + item.totalWm, 0);
 
-        {/* Footer Pagination */}
-        <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
-          <span>
-            Menampilkan {filtered.length} dari 1.250 unit water meter •{" "}
-            <strong className="text-pdam-navy">Halaman 1 dari 125</strong>
-          </span>
-          <div className="join">
-            <button className="join-item btn btn-sm btn-disabled">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button className="join-item btn btn-sm bg-pdam-primary text-white font-bold border-0">1</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">2</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">3</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">...</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">125</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">
-              <ChevronRight className="w-4 h-4" />
-            </button>
+                return (
+                  <div
+                    key={cabang}
+                    className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                          Unit Cabang
+                        </span>
+                        <h4 className="text-base font-bold text-slate-800">{cabang}</h4>
+                      </div>
+                      <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                        {totalDikirim} WM Dikirim
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-3 space-y-2">
+                      <div className="text-xs font-semibold text-slate-600">
+                        Rincian Pengiriman per Merk:
+                      </div>
+                      {pengirimanList
+                        .filter((p) => p.unitTujuan === cabang)
+                        .flatMap((p) => p.details)
+                        .map((det, idx) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded border border-slate-100"
+                          >
+                            <span className="font-medium text-slate-700">{det.merk}</span>
+                            <span className="font-mono font-bold text-pdam-primary">
+                              {det.jumlah} Unit
+                            </span>
+                          </div>
+                        ))}
+                      {totalDikirim === 0 && (
+                        <div className="text-xs text-slate-400 italic">Belum ada catatan pengiriman.</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Modals (dirender sekali di luar tabel) */}
-      {showExport && (
-        <ExportModal
-          onClose={() => setShowExport(false)}
-          allData={meters}
-          filteredData={filtered}
-        />
+      {/* TAB 2: CATATAN RIWAYAT PENGIRIMAN (BERJENJANG) */}
+      {activeTab === "pengiriman" && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Cari no. pengiriman, unit tujuan, atau catatan..."
+              className="w-full sm:max-w-md"
+            />
+            <SelectDropdown
+              value={cabangFilter}
+              onChange={setCabangFilter}
+              options={["Semua", ...CABANG_OPTIONS]}
+              icon={<MapPin className="w-3.5 h-3.5" />}
+              className="w-full sm:w-56"
+            />
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">No. Pengiriman & Tanggal</th>
+                  <th className="py-3 px-4">Unit Tujuan</th>
+                  <th className="py-3 px-4">Total Pengiriman</th>
+                  <th className="py-3 px-4">Rincian Merk & Jumlah</th>
+                  <th className="py-3 px-4">Catatan</th>
+                  <th className="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {paginatedPengiriman.map((item) => (
+                  <tr key={item.idPengiriman} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono font-bold text-pdam-primary block">
+                        {item.noPengiriman}
+                      </span>
+                      <span className="text-[10px] text-slate-400 inline-flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> {item.tglPengiriman}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-semibold text-slate-800">
+                      <span className="inline-block bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[11px] font-medium">
+                        {item.unitTujuan}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono font-bold text-slate-900 text-sm">
+                        {item.totalWm} Unit
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-1">
+                        {item.details.map((d, idx) => (
+                          <div key={idx} className="text-[11px] text-slate-600">
+                            • <span className="font-semibold">{d.merk}</span>: {d.jumlah} Unit
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">
+                      {item.catatan || "-"}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => setSelectedPengiriman(item)}
+                        className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline inline-flex items-center gap-1 text-xs"
+                      >
+                        Detail <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {paginatedPengiriman.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      Tidak ada catatan pengiriman yang ditemukan.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 border-t border-slate-100">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredPengiriman.length}
+              onPageChange={setCurrentPage}
+              startIndex={(currentPage - 1) * itemsPerPage}
+              endIndex={Math.min(currentPage * itemsPerPage, filteredPengiriman.length)}
+            />
+          </div>
+        </div>
       )}
-      {showRegistrasi && (
-        <RegistrasiModal
-          onClose={() => setShowRegistrasi(false)}
-          existingSN={new Set(meters.map((m) => m.noSeri))}
-          onAdd={(items) => setMeters((prev) => [...items, ...prev])}
-        />
+
+      {/* MODAL INPUT CATATAN PENGIRIMAN BERJENJANG (PUSAT) */}
+      {addPengirimanOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">
+                  Catat Pengiriman Water Meter (Pusat)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Input catatan pengiriman ke unit cabang secara berjenjang per merk.
+                </p>
+              </div>
+              <button
+                onClick={() => setAddPengirimanOpen(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitPengiriman} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    No. Pengiriman
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: SHIP/2026/10/001"
+                    value={formNoPengiriman}
+                    onChange={(e) => setFormNoPengiriman(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pdam-primary/20"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Tanggal Pengiriman
+                  </label>
+                  <input
+                    type="date"
+                    value={formTglPengiriman}
+                    onChange={(e) => setFormTglPengiriman(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pdam-primary/20"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Unit Cabang Tujuan
+                </label>
+                <select
+                  value={formUnitTujuan}
+                  onChange={(e) => setFormUnitTujuan(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pdam-primary/20"
+                >
+                  {CABANG_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SECTION DETAIL MERK BERJENJANG */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Rincian Jumlah berdasarkan Merk WM
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddDetailRow}
+                    className="text-xs text-pdam-primary font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Tambah Merk
+                  </button>
+                </div>
+
+                {formDetails.map((detail, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200"
+                  >
+                    <div className="flex-1">
+                      <select
+                        value={detail.merk}
+                        onChange={(e) => handleDetailChange(index, "merk", e.target.value)}
+                        className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded focus:outline-none"
+                      >
+                        <option value="Itron Aquadis+">Itron Aquadis+</option>
+                        <option value="Linflow Multijet">Linflow Multijet</option>
+                        <option value="Onda Brass Core">Onda Brass Core</option>
+                        <option value="Actaris Metron Cyble">Actaris Metron Cyble</option>
+                      </select>
+                    </div>
+                    <div className="w-32">
+                      <input
+                        type="number"
+                        placeholder="Jumlah"
+                        value={detail.jumlah}
+                        onChange={(e) =>
+                          handleDetailChange(index, "jumlah", Number(e.target.value))
+                        }
+                        className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded font-mono font-bold focus:outline-none"
+                        min="1"
+                        required
+                      />
+                    </div>
+                    {formDetails.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDetailRow(index)}
+                        className="text-red-500 hover:text-red-700 text-xs font-bold px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan</label>
+                <textarea
+                  rows={2}
+                  placeholder="Catatan pengiriman..."
+                  value={formCatatan}
+                  onChange={(e) => setFormCatatan(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pdam-primary/20"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddPengirimanOpen(false)}
+                  className="btn btn-sm btn-ghost text-slate-600"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none"
+                >
+                  Simpan Catatan Pengiriman
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-      {detailItem && <DetailModal item={detailItem} onClose={() => setDetailItem(null)} />}
+
+      {/* MODAL DETAIL CATATAN PENGIRIMAN */}
+      {selectedPengiriman && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-pdam-primary" />
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    Detail Pengiriman Water Meter
+                  </h3>
+                  <p className="text-[11px] font-mono text-slate-500">
+                    {selectedPengiriman.noPengiriman}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPengiriman(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                    Tanggal Pengiriman
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedPengiriman.tglPengiriman}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                    Unit Cabang Tujuan
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedPengiriman.unitTujuan}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block font-bold mb-2">
+                  Rincian Breakdown Merk & Ukuran:
+                </span>
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-[10px] font-bold text-slate-600 uppercase">
+                        <th className="py-2 px-3">Merk Water Meter</th>
+                        <th className="py-2 px-3">Ukuran DN</th>
+                        <th className="py-2 px-3 text-right">Jumlah</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {selectedPengiriman.details.map((d, i) => (
+                        <tr key={i}>
+                          <td className="py-2 px-3 font-medium text-slate-800">{d.merk}</td>
+                          <td className="py-2 px-3 font-mono text-slate-500">{d.ukuranDn}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-pdam-primary">
+                            {d.jumlah} Unit
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-50 font-bold text-slate-900 border-t border-slate-200">
+                        <td colSpan={2} className="py-2.5 px-3 text-right">
+                          Total Akumulasi:
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-pdam-primary">
+                          {selectedPengiriman.totalWm} Unit
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block font-bold mb-1">Catatan Pengiriman:</span>
+                <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-600 italic">
+                  {selectedPengiriman.catatan || "Tidak ada catatan khusus."}
+                </p>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPengiriman(null)}
+                  className="btn btn-sm bg-slate-800 hover:bg-slate-900 text-white border-none"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        columns={EXPORT_COLUMNS}
+        totalFiltered={filteredPengiriman.length}
+        totalAll={pengirimanList.length}
+        onExport={handleExport}
+      />
     </div>
   );
 }

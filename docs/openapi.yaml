@@ -1,0 +1,367 @@
+openapi: 3.0.3
+info:
+  title: PAM Tirta Kamuning - Water Meter Replacement System API
+  description: >
+    Spesifikasi RESTful API untuk Sistem Informasi Penggantian & Manajemen Water Meter
+    Perumda Air Minum (PAM) Tirta Kamuning Kabupaten Kuningan.
+  version: 1.0.0
+  contact:
+    name: Tim IT PAM Tirta Kamuning
+    email: it-support@tirtakamuning.co.id
+    url: https://tirtakamuning.co.id
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development Server
+  - url: https://api.tirtakamuning.co.id/api/v1
+    description: Production Server
+
+tags:
+  - name: Auth
+    description: Autentikasi JWT dan manajemen sesi
+  - name: Dashboard
+    description: Rekap statistik, KPI, dan progres 9 unit cabang
+  - name: Water Meter
+    description: Manajemen inventaris fisik meteran air
+  - name: Pelanggan
+    description: Master data sambungan langganan dan baseline gap
+  - name: Penugasan
+    description: Tiket Surat Perintah Kerja (SPK) penggantian meter
+  - name: Validasi & BAP
+    description: Verifikasi lapangan dan penerbitan Berita Acara Penggantian
+  - name: Master Data
+    description: Master merk water meter, golongan tarif, dan user
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login pengguna (NIP / Email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier:
+                  type: string
+                  example: "198804122015031002"
+                password:
+                  type: string
+                  example: "Password123!"
+      responses:
+        '200':
+          description: Autentikasi berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Kredensial tidak valid
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Mendapatkan profil pengguna aktif
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil pengguna
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Ringkasan metrik dashboard dan inventaris
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id_unit
+          in: query
+          schema:
+            type: integer
+          description: Filter cabang (1-9)
+        - name: periode
+          in: query
+          schema:
+            type: string
+            example: "2026-08"
+      responses:
+        '200':
+          description: Data metrik KPI
+
+  /dashboard/unit-progress:
+    get:
+      tags: [Dashboard]
+      summary: Rekap target dan realisasi 9 unit cabang
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Daftar progres cabang
+
+  /water-meter:
+    get:
+      tags: [Water Meter]
+      summary: Mengambil daftar water meter
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [tersedia_di_unit, terpasang, rusak, tarik]
+        - name: id_unit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Daftar water meter berhasil diambil
+
+    post:
+      tags: [Water Meter]
+      summary: Registrasi water meter satuan baru
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [no_seri, id_merk, ukuran_dn, tahun_pengadaan, id_unit]
+              properties:
+                no_seri:
+                  type: string
+                  example: "WM-26-001205"
+                id_merk:
+                  type: integer
+                  example: 1
+                ukuran_dn:
+                  type: string
+                  enum: ["1/2", "3/4", "1", "1 1/2", "2"]
+                  default: "1/2"
+                tahun_pengadaan:
+                  type: integer
+                  example: 2026
+                id_unit:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Water meter berhasil didaftarkan
+
+  /pelanggan:
+    get:
+      tags: [Pelanggan]
+      summary: Mengambil daftar pelanggan (mendukung filter baseline gap)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: id_unit
+          in: query
+          schema:
+            type: integer
+        - name: has_wm_aktif
+          in: query
+          schema:
+            type: boolean
+          description: Set false untuk mengambil pelanggan data gap (id_wm_aktif IS NULL)
+      responses:
+        '200':
+          description: Daftar pelanggan berhasil diambil
+
+  /penugasan:
+    get:
+      tags: [Penugasan]
+      summary: Daftar SPK penugasan penggantian water meter
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, proses, selesai, dibatalkan]
+        - name: id_unit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Daftar SPK
+
+    post:
+      tags: [Penugasan]
+      summary: Buat SPK penugasan baru
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_pelanggan, alasan_ganti, prioritas]
+              properties:
+                id_pelanggan:
+                  type: string
+                  example: "PLG-KNG-089211"
+                alasan_ganti:
+                  type: string
+                  example: "Meteran Macet"
+                prioritas:
+                  type: string
+                  enum: [URGENT, RUTIN, KEDALUWARSA, INVESTIGASI, PRIORITAS]
+                id_teknisi:
+                  type: integer
+                  nullable: true
+                catatan:
+                  type: string
+      responses:
+        '201':
+          description: SPK berhasil dibuat
+
+  /validasi/submit-lapangan:
+    post:
+      tags: [Validasi & BAP]
+      summary: Submit hasil penggantian fisik oleh teknisi
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - id_penugasan
+                - id_wm_lama
+                - stand_meter_lama
+                - kondisi_fisik_lama
+                - id_wm_baru
+                - stand_meter_baru
+                - foto_wm_lama
+                - foto_wm_baru
+              properties:
+                id_penugasan:
+                  type: integer
+                id_wm_lama:
+                  type: string
+                stand_meter_lama:
+                  type: integer
+                kondisi_fisik_lama:
+                  type: string
+                  enum: [normal, macet, kaca_pecah, berembun_parah, bodi_korosi]
+                id_wm_baru:
+                  type: string
+                stand_meter_baru:
+                  type: integer
+                  default: 0
+                foto_wm_lama:
+                  type: string
+                  format: binary
+                foto_wm_baru:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: BAP berhasil dikirim untuk ditinjau
+
+  /validasi/{id_bap}/approve:
+    post:
+      tags: [Validasi & BAP]
+      summary: Persetujuan BAP oleh Admin Pusat (Otomatis mutasi status aset)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id_bap
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                catatan:
+                  type: string
+      responses:
+        '200':
+          description: BAP disetujui dan status aset dimutasi
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            expires_in:
+              type: integer
+              example: 3600
+
+    UserResponse:
+      type: object
+      properties:
+        id_user:
+          type: integer
+        nip:
+          type: string
+        nama_lengkap:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin_pusat, admin_cabang, teknisi]
+        unit_kerja:
+          type: string

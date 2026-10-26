@@ -19,8 +19,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PDAM Tirta - Panel Admin Manajemen Water Meter",
-  description: "Sistem Manajemen & Monitoring Penggantian Water Meter PDAM Tirta",
+  title: "PAM Tirta Kamuning - Panel Manajemen Pergantian Water Meter",
+  description: "Sistem Manajemen Inventori, Monitoring & Operasional Pergantian Water Meter PAM Tirta Kamuning Kabupaten Kuningan",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

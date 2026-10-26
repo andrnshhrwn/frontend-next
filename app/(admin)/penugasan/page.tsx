@@ -26,8 +26,8 @@ import { useState, type ReactNode } from "react";
 /* ------------------------------------------------------------------ */
 
 type Status = "Pending" | "Proses" | "Selesai" | "Dibatalkan"; // enum penugasan.status
-type Label = "URGENT" | "RUTIN" | "TERA" | "INVESTIGASI" | "PRIORITAS";
-type Cabang = "Pusat" | "Timur" | "Barat" | "Utara" | "Selatan";
+type Label = "URGENT" | "RUTIN" | "KEDALUWARSA" | "INVESTIGASI" | "PRIORITAS";
+type Cabang = "Kuningan" | "Cilimus" | "Cigugur" | "Ciawi" | "Luragung" | "Kadugede" | "Garawangi" | "Japara" | "Cidahu";
 
 interface Ticket {
   id: string;
@@ -44,39 +44,49 @@ interface Ticket {
 }
 
 const initialTickets: Ticket[] = [
-  { id: "TICK-1042", tanggal: "24 Okt • 08:30", cabang: "Timur", pelanggan: "Bambang Sutedjo", idPelanggan: "PLG-089211", alamat: "Jl. Pandugo Timur IV No. 18", alasan: "Bodi Retak/Bocor", label: "URGENT", teknisi: null, status: "Pending" },
-  { id: "TICK-1041", tanggal: "24 Okt • 08:15", cabang: "Barat", pelanggan: "Koperasi Tirta Makmur", idPelanggan: "PLG-091480", alamat: "Kawasan Niaga Margomulyo", alasan: "Meteran Macet", label: "RUTIN", teknisi: "Agus Prabowo", status: "Proses" },
-  { id: "TICK-1039", tanggal: "24 Okt • 07:45", cabang: "Utara", pelanggan: "Dr. Maria Ulfah", idPelanggan: "PLG-055102", alamat: "Pantai Mentari Blok B-12", alasan: "Kedaluwarsa >5 Thn", label: "TERA", teknisi: "Deni Febrianto", status: "Selesai" },
-  { id: "TICK-1038", tanggal: "24 Okt • 07:10", cabang: "Selatan", pelanggan: "CV. Surya Mandiri", idPelanggan: "PLG-078199", alamat: "Jl. Ngagel Jaya Selatan No. 44B", alasan: "Segel Rusak/Putus", label: "INVESTIGASI", teknisi: null, status: "Pending" },
-  { id: "TICK-1035", tanggal: "23 Okt • 16:40", cabang: "Pusat", pelanggan: "Hotel Majapahit", idPelanggan: "PLG-014802", alamat: "Jl. Tunjungan No. 65", alasan: "Komersial DN 50", label: "PRIORITAS", teknisi: "Rizal Hidayat", status: "Proses" },
-  { id: "TICK-1031", tanggal: "23 Okt • 14:10", cabang: "Timur", pelanggan: "Hartono Kusumo", idPelanggan: "PLG-003892", alamat: "Kertajaya Indah Timur XI", alasan: "Kaca Register Buram", label: "RUTIN", teknisi: "Budi Waluyo", status: "Selesai" },
+  { id: "TICK-26-0842", tanggal: "26 Agu • 08:30", cabang: "Kuningan", pelanggan: "Bambang Sutedjo", idPelanggan: "PLG-KNG-089211", alamat: "Jl. Siliwangi No. 120, Kuningan", alasan: "Bodi Retak/Bocor", label: "URGENT", teknisi: null, status: "Pending" },
+  { id: "TICK-26-0841", tanggal: "26 Agu • 08:15", cabang: "Cilimus", pelanggan: "Koperasi Tirta Mandiri", idPelanggan: "PLG-CLM-091480", alamat: "Jl. Raya Bojong No. 25, Cilimus", alasan: "Meteran Macet", label: "RUTIN", teknisi: "Asep Saepudin", status: "Proses" },
+  { id: "TICK-26-0839", tanggal: "25 Agu • 09:45", cabang: "Cigugur", pelanggan: "H. Ridwan Mansyur", idPelanggan: "PLG-CGG-002104", alamat: "Jl. Sukamulya No. 18, Cigugur", alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA", teknisi: "Nana Sutrisna", status: "Selesai" },
+  { id: "TICK-26-0838", tanggal: "25 Agu • 08:10", cabang: "Ciawi", pelanggan: "CV. Agro Ciawi Mandiri", idPelanggan: "PLG-CAW-078199", alamat: "Jl. Raya Ciawi-Gebang No. 44", alasan: "Bodi Korosi Parah", label: "INVESTIGASI", teknisi: null, status: "Pending" },
+  { id: "TICK-26-0835", tanggal: "24 Agu • 14:40", cabang: "Luragung", pelanggan: "Puskesmas DTP Luragung", idPelanggan: "PLG-LRG-014802", alamat: "Jl. Raya Luragung No. 65", alasan: "Komersial DN 50", label: "PRIORITAS", teknisi: "Dadang Suhendar", status: "Proses" },
+  { id: "TICK-26-0831", tanggal: "24 Agu • 10:10", cabang: "Kadugede", pelanggan: "Hartono Kusumo", idPelanggan: "PLG-KDG-003892", alamat: "Desa Kadugede RT 03/RW 02", alasan: "Kaca Register Buram", label: "RUTIN", teknisi: "Yudi Herdiana", status: "Selesai" },
+  { id: "TICK-26-0828", tanggal: "23 Agu • 11:20", cabang: "Garawangi", pelanggan: "Siti Rahmawati Putri", idPelanggan: "PLG-GRW-055102", alamat: "Jl. Raya Garawangi No. 12", alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA", teknisi: "Wawan Gunawan", status: "Selesai" },
+  { id: "TICK-26-0824", tanggal: "22 Agu • 15:30", cabang: "Japara", pelanggan: "Dra. Endang Purwanti", idPelanggan: "PLG-JPR-014805", alamat: "Desa Dukuhdalem, Japara", alasan: "Meteran Macet", label: "RUTIN", teknisi: "Iman Rohiman", status: "Selesai" },
+  { id: "TICK-26-0819", tanggal: "21 Agu • 13:15", cabang: "Cidahu", pelanggan: "PT. Pangan Lestari Kuningan", idPelanggan: "PLG-CDH-078210", alamat: "Jl. Raya Cieurih-Cidahu No. 8", alasan: "Bodi Retak/Bocor", label: "URGENT", teknisi: "Eka Prasetya", status: "Selesai" },
 ];
 
-// Mock master pelanggan (sumber: tabel pelanggan)
+// Mock master pelanggan (sumber: tabel pelanggan PAM Tirta Kamuning)
 const pelangganList = [
-  { id: "PLG-089211", nama: "Bambang Sutedjo", alamat: "Jl. Pandugo Timur IV No. 18", cabang: "Timur" as Cabang },
-  { id: "PLG-002104", nama: "H. Ridwan Mansyur", alamat: "Jl. Kawi No. 18 RT 02/RW 04", cabang: "Pusat" as Cabang },
-  { id: "PLG-055102", nama: "Siti Rahmawati Putri", alamat: "Jl. Simpang Borobudur Gang 4 No. 12", cabang: "Utara" as Cabang },
-  { id: "PLG-091480", nama: "CV. Sumber Makmur Abadi", alamat: "Jl. Soekarno Hatta Ruko Kav. 8", cabang: "Barat" as Cabang },
-  { id: "PLG-014802", nama: "Dra. Endang Purwanti", alamat: "Jl. Ijen No. 74", cabang: "Pusat" as Cabang },
-  { id: "PLG-078199", nama: "PT. Indo Pangan Lestari", alamat: "Kawasan Industri Candi Blok A-12", cabang: "Selatan" as Cabang },
+  { id: "PLG-KNG-089211", nama: "Bambang Sutedjo", alamat: "Jl. Siliwangi No. 120, Kuningan", cabang: "Kuningan" as Cabang },
+  { id: "PLG-CLM-091480", nama: "Koperasi Tirta Mandiri", alamat: "Jl. Raya Bojong No. 25, Cilimus", cabang: "Cilimus" as Cabang },
+  { id: "PLG-CGG-002104", nama: "H. Ridwan Mansyur", alamat: "Jl. Sukamulya No. 18, Cigugur", cabang: "Cigugur" as Cabang },
+  { id: "PLG-CAW-078199", nama: "CV. Agro Ciawi Mandiri", alamat: "Jl. Raya Ciawi-Gebang No. 44", cabang: "Ciawi" as Cabang },
+  { id: "PLG-LRG-014802", nama: "Puskesmas DTP Luragung", alamat: "Jl. Raya Luragung No. 65", cabang: "Luragung" as Cabang },
+  { id: "PLG-KDG-003892", nama: "Hartono Kusumo", alamat: "Desa Kadugede RT 03/RW 02", cabang: "Kadugede" as Cabang },
+  { id: "PLG-GRW-055102", nama: "Siti Rahmawati Putri", alamat: "Jl. Raya Garawangi No. 12", cabang: "Garawangi" as Cabang },
+  { id: "PLG-JPR-014805", nama: "Dra. Endang Purwanti", alamat: "Desa Dukuhdalem, Japara", cabang: "Japara" as Cabang },
+  { id: "PLG-CDH-078210", nama: "PT. Pangan Lestari Kuningan", alamat: "Jl. Raya Cieurih-Cidahu No. 8", cabang: "Cidahu" as Cabang },
 ];
 
 const alasanOptions: { alasan: string; label: Label }[] = [
   { alasan: "Bodi Retak/Bocor", label: "URGENT" },
-  { alasan: "Segel Rusak/Putus", label: "INVESTIGASI" },
+  { alasan: "Bodi Korosi Parah", label: "INVESTIGASI" },
   { alasan: "Meteran Macet", label: "RUTIN" },
   { alasan: "Kaca Register Buram", label: "RUTIN" },
-  { alasan: "Kedaluwarsa >5 Thn", label: "TERA" },
+  { alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA" },
   { alasan: "Komersial DN 50", label: "PRIORITAS" },
 ];
 
 const teknisiByCabang: Record<Cabang, { nama: string; aktif: number }[]> = {
-  Pusat: [{ nama: "Rizal Hidayat", aktif: 3 }, { nama: "Yoga Pratama", aktif: 1 }],
-  Timur: [{ nama: "Budi Waluyo", aktif: 2 }, { nama: "Anwar Setiadi", aktif: 0 }],
-  Barat: [{ nama: "Agus Prabowo", aktif: 4 }, { nama: "Fajar Nugroho", aktif: 1 }],
-  Utara: [{ nama: "Deni Febrianto", aktif: 2 }, { nama: "Bagas Wahyudi", aktif: 0 }],
-  Selatan: [{ nama: "Rudi Hermawan", aktif: 1 }, { nama: "Teguh Santoso", aktif: 3 }],
+  Kuningan: [{ nama: "Dede Suryana", aktif: 2 }, { nama: "Agus Mulyana", aktif: 1 }],
+  Cilimus: [{ nama: "Asep Saepudin", aktif: 3 }, { nama: "Fajar Hidayat", aktif: 0 }],
+  Cigugur: [{ nama: "Nana Sutrisna", aktif: 1 }, { nama: "Budi Santoso", aktif: 2 }],
+  Ciawi: [{ nama: "Dadang Suhendar", aktif: 2 }, { nama: "Ujang Koswara", aktif: 1 }],
+  Luragung: [{ nama: "Yudi Herdiana", aktif: 3 }, { nama: "Ahmad Sanusi", aktif: 0 }],
+  Kadugede: [{ nama: "Wawan Gunawan", aktif: 1 }, { nama: "Teguh Pratama", aktif: 2 }],
+  Garawangi: [{ nama: "Iman Rohiman", aktif: 2 }, { nama: "Rahmat Hidayat", aktif: 1 }],
+  Japara: [{ nama: "Eka Prasetya", aktif: 1 }, { nama: "Dani Darmawan", aktif: 0 }],
+  Cidahu: [{ nama: "Cecep Supriadi", aktif: 2 }, { nama: "Ade Suherman", aktif: 1 }],
 };
 
 const statusClass: Record<Status, string> = {
@@ -91,7 +101,7 @@ const labelClass: Record<Label, string> = {
   INVESTIGASI: "border-amber-500/30 bg-amber-500/10 text-amber-700",
   PRIORITAS: "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary",
   RUTIN: "border-slate-200 bg-slate-100 text-slate-600",
-  TERA: "border-slate-200 bg-slate-100 text-slate-600",
+  KEDALUWARSA: "border-indigo-200 bg-indigo-50 text-indigo-700",
 };
 
 /* ------------------------------------------------------------------ */
@@ -860,10 +870,14 @@ export default function PenugasanPusatPage() {
     label: Label;
     catatan: string;
   }) => {
-    const nextNo = Math.max(...tickets.map((t) => Number(t.id.replace("TICK-", "")))) + 1;
+    const maxNo = Math.max(0, ...tickets.map((t) => {
+      const match = t.id.match(/\d+$/);
+      return match ? Number(match[0]) : 0;
+    }));
+    const nextNo = maxNo > 0 ? maxNo + 1 : 1001;
     setTickets((prev) => [
       {
-        id: `TICK-${nextNo}`,
+        id: `TICK-26-${nextNo}`,
         tanggal: formatNow(),
         cabang: pelanggan.cabang,
         pelanggan: pelanggan.nama,
@@ -880,10 +894,13 @@ export default function PenugasanPusatPage() {
   };
 
   const handleBulkCreate = (items: TicketInput[]) => {
-    let no = Math.max(...tickets.map((t) => Number(t.id.replace("TICK-", ""))));
+    let no = Math.max(0, ...tickets.map((t) => {
+      const match = t.id.match(/\d+$/);
+      return match ? Number(match[0]) : 0;
+    }));
     const now = formatNow();
     const created: Ticket[] = items.map((it) => ({
-      id: `TICK-${++no}`,
+      id: `TICK-26-${++no}`,
       tanggal: now,
       cabang: it.pelanggan.cabang,
       pelanggan: it.pelanggan.nama,
@@ -899,10 +916,10 @@ export default function PenugasanPusatPage() {
   };
 
   const tabs: { label: string; value: StatusFilter; count: string }[] = [
-    { label: "Semua", value: "Semua", count: "2,150" },
-    { label: "Pending", value: "Pending", count: "315" },
-    { label: "Proses", value: "Proses", count: "980" },
-    { label: "Selesai", value: "Selesai", count: "855" },
+    { label: "Semua SPK", value: "Semua", count: "320" },
+    { label: "Pending Disposisi", value: "Pending", count: "21" },
+    { label: "Dalam Pengerjaan", value: "Proses", count: "32" },
+    { label: "Selesai (Riil)", value: "Selesai", count: "267" },
   ];
 
   return (
@@ -910,16 +927,21 @@ export default function PenugasanPusatPage() {
       {/* Breadcrumb & Header Title */}
       <div>
         <p className="text-xs text-slate-500 mb-1">
-          PDAM Tirta / Operasional /{" "}
-          <span className="text-pdam-primary font-semibold">Penugasan</span>
+          <span className="font-semibold text-pdam-primary">PAM Tirta Kamuning</span> / Operasional /{" "}
+          <span className="text-pdam-primary font-semibold">Penugasan Berjenjang</span>
         </p>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
-              Manajemen Penugasan (Admin Pusat)
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
+                Manajemen Penugasan SPK
+              </h1>
+              <span className="badge bg-pdam-primary/10 text-pdam-primary border-pdam-primary/20 text-[10px] font-bold">
+                Pusat &amp; 9 Cabang
+              </span>
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Monitoring dan alokasi Surat Perintah Kerja (SPK) penggantian water meter.
+              Alur berjenjang: Tiket diterbitkan Admin Pusat, plotting teknisi oleh Admin Cabang, dan eksekusi lapangan.
             </p>
           </div>
 
@@ -936,22 +958,22 @@ export default function PenugasanPusatPage() {
               className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white font-semibold normal-case border-0 shadow-xs"
             >
               <Plus className="w-4 h-4" />
-              <span>Buat Tiket Penugasan</span>
+              <span>Buat Tiket Penugasan (Pusat)</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 4 Kartu Statistik Nasional */}
+      {/* 4 Kartu Statistik */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Total SPK Nasional
+                Total SPK Periode Agu 2026
               </p>
-              <h3 className="text-2xl font-black text-pdam-navy tabular-nums">2,150</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Akumulasi seluruh cabang</p>
+              <h3 className="text-2xl font-black text-pdam-navy tabular-nums">320</h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">Akumulasi 9 unit cabang</p>
             </div>
             <div className="w-9 h-9 rounded-lg bg-pdam-bg flex items-center justify-center text-pdam-navy border border-slate-200/80">
               <ClipboardList className="w-5 h-5" />
@@ -963,10 +985,10 @@ export default function PenugasanPusatPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-pdam-red uppercase tracking-wider mb-1">
-                Pending (Disposisi)
+                Pending (Disposisi Cabang)
               </p>
-              <h3 className="text-2xl font-black text-pdam-red tabular-nums">315</h3>
-              <p className="text-[11px] text-pdam-red/80 mt-0.5">Memerlukan penugasan teknisi</p>
+              <h3 className="text-2xl font-black text-pdam-red tabular-nums">21</h3>
+              <p className="text-[11px] text-pdam-red/80 mt-0.5">Menunggu penugasan teknisi</p>
             </div>
             <div className="w-9 h-9 rounded-lg bg-pdam-red/10 flex items-center justify-center text-pdam-red border border-pdam-red/20">
               <Clock className="w-5 h-5" />
@@ -980,7 +1002,7 @@ export default function PenugasanPusatPage() {
               <p className="text-[10px] font-bold text-pdam-primary uppercase tracking-wider mb-1">
                 Sedang Dikerjakan
               </p>
-              <h3 className="text-2xl font-black text-pdam-primary tabular-nums">980</h3>
+              <h3 className="text-2xl font-black text-pdam-primary tabular-nums">32</h3>
               <p className="text-[11px] text-pdam-primary/80 mt-0.5">Teknisi di lapangan</p>
             </div>
             <div className="w-9 h-9 rounded-lg bg-pdam-primary/10 flex items-center justify-center text-pdam-primary border border-pdam-primary/20">
@@ -992,13 +1014,13 @@ export default function PenugasanPusatPage() {
         <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold text-pdam-navy uppercase tracking-wider mb-1">
+              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">
                 Selesai &amp; Terverifikasi
               </p>
-              <h3 className="text-2xl font-black text-pdam-navy tabular-nums">855</h3>
-              <p className="text-[11px] text-pdam-navy/80 mt-0.5">Hasil segel tervalidasi</p>
+              <h3 className="text-2xl font-black text-emerald-700 tabular-nums">267</h3>
+              <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Realisasi riil Agustus 2026</p>
             </div>
-            <div className="w-9 h-9 rounded-lg bg-pdam-navy/10 flex items-center justify-center text-pdam-navy border border-pdam-navy/20">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
@@ -1023,10 +1045,10 @@ export default function PenugasanPusatPage() {
             onChange={(e) => setCabangFilter(e.target.value)}
             className="select select-bordered select-sm w-full text-xs font-semibold border-slate-200 bg-white text-slate-700"
           >
-            <option value="">Semua Cabang (Nasional)</option>
-            {(["Pusat", "Timur", "Barat", "Utara", "Selatan"] as Cabang[]).map((c) => (
+            <option value="">Semua Cabang (9 Unit PAM Tirta Kamuning)</option>
+            {(["Kuningan", "Cilimus", "Cigugur", "Ciawi", "Luragung", "Kadugede", "Garawangi", "Japara", "Cidahu"] as Cabang[]).map((c) => (
               <option key={c} value={c}>
-                Cabang {c}
+                Unit Cabang {c}
               </option>
             ))}
           </select>

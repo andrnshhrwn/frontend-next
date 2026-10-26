@@ -1,291 +1,417 @@
 "use client";
 
-import { Download, Plus, Search, Pencil, Trash2, X, Gauge } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
+import { Download, Plus, Pencil, Trash2, Gauge, Layers, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  PageHeader,
+  StatCard,
+  SearchInput,
+  BaseModal,
+  DeleteConfirmModal,
+  ExportModal,
+  Pagination,
+} from "@/components/ui";
 
-// Sesuai tabel `merk_wm` (id_merk INT AI, merk_wm VARCHAR(50), wm_digit INT)
 interface MerkWM {
   id_merk: number;
+  wm_kode: string;
   merk_wm: string;
   wm_digit: number;
-  jumlahWM: number; // hasil agregasi water_meter.id_merk (read-only)
+  jumlahWM: number;
 }
 
 const initialData: MerkWM[] = [
-  { id_merk: 1, merk_wm: "Itron", wm_digit: 5, jumlahWM: 1820 },
-  { id_merk: 2, merk_wm: "Sensus", wm_digit: 5, jumlahWM: 1240 },
-  { id_merk: 3, merk_wm: "Zenner", wm_digit: 5, jumlahWM: 960 },
-  { id_merk: 4, merk_wm: "Amico", wm_digit: 4, jumlahWM: 540 },
-  { id_merk: 5, merk_wm: "Bestar", wm_digit: 4, jumlahWM: 260 },
+  { id_merk: 1, wm_kode: "ITR", merk_wm: "Itron", wm_digit: 5, jumlahWM: 640 },
+  { id_merk: 2, wm_kode: "LIN", merk_wm: "Linflow", wm_digit: 5, jumlahWM: 480 },
+  { id_merk: 3, wm_kode: "OND", merk_wm: "Onda", wm_digit: 5, jumlahWM: 310 },
+  { id_merk: 4, wm_kode: "ACT", merk_wm: "Actaris", wm_digit: 5, jumlahWM: 180 },
+  { id_merk: 5, wm_kode: "NBG", merk_wm: "Ningbo", wm_digit: 4, jumlahWM: 120 },
+  { id_merk: 6, wm_kode: "BRM", merk_wm: "Bar-Meters", wm_digit: 5, jumlahWM: 80 },
+  { id_merk: 7, wm_kode: "SNS", merk_wm: "Sensus", wm_digit: 5, jumlahWM: 30 },
+];
+
+const EXPORT_COLUMNS = [
+  { id: "wm_kode", label: "Kode Merk" },
+  { id: "merk_wm", label: "Nama Merk" },
+  { id: "wm_digit", label: "Jumlah Digit Stand" },
+  { id: "jumlahWM", label: "Jumlah Populasi Aset (Unit)" },
 ];
 
 export default function DataMerkWMPage() {
   const [data, setData] = useState<MerkWM[]>(initialData);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [deletingMerk, setDeletingMerk] = useState<MerkWM | null>(null);
   const [editing, setEditing] = useState<MerkWM | null>(null);
-  const [form, setForm] = useState({ merk_wm: "", wm_digit: "" });
+  const [form, setForm] = useState({ wm_kode: "", merk_wm: "", wm_digit: "5" });
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  const filtered = data.filter((m) =>
-    m.merk_wm.toLowerCase().includes(search.toLowerCase())
+  const filtered = data.filter(
+    (m) =>
+      m.merk_wm.toLowerCase().includes(search.toLowerCase()) ||
+      m.wm_kode.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const totalWM = data.reduce((a, b) => a + b.jumlahWM, 0);
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ merk_wm: "", wm_digit: "" });
+    setForm({ wm_kode: "", merk_wm: "", wm_digit: "5" });
     setError("");
     setModalOpen(true);
   };
 
   const openEdit = (m: MerkWM) => {
     setEditing(m);
-    setForm({ merk_wm: m.merk_wm, wm_digit: String(m.wm_digit) });
+    setForm({ wm_kode: m.wm_kode, merk_wm: m.merk_wm, wm_digit: String(m.wm_digit) });
     setError("");
     setModalOpen(true);
   };
 
   const handleSave = () => {
+    const kode = form.wm_kode.trim().toUpperCase();
     const nama = form.merk_wm.trim();
     const digit = Number(form.wm_digit);
+    if (!kode) return setError("Kode merk (wm_kode) wajib diisi.");
+    if (kode.length > 10) return setError("Kode merk maksimal 10 karakter.");
     if (!nama) return setError("Nama merk wajib diisi.");
     if (nama.length > 50) return setError("Nama merk maksimal 50 karakter.");
-    if (!Number.isInteger(digit) || digit < 1)
-      return setError("Jumlah digit harus berupa bilangan bulat positif.");
-    if (data.some((m) => m.merk_wm.toLowerCase() === nama.toLowerCase() && m.id_merk !== editing?.id_merk))
-      return setError("Merk water meter sudah terdaftar.");
+    if (!digit || digit < 3 || digit > 8)
+      return setError("Jumlah digit harus antara 3 dan 8 digit.");
+    if (!editing && data.some((m) => m.wm_kode === kode))
+      return setError("Kode merk sudah digunakan.");
 
     if (editing) {
       setData((d) =>
         d.map((m) =>
-          m.id_merk === editing.id_merk ? { ...m, merk_wm: nama, wm_digit: digit } : m
+          m.id_merk === editing.id_merk
+            ? { ...m, wm_kode: kode, merk_wm: nama, wm_digit: digit }
+            : m
         )
       );
     } else {
-      const nextId = Math.max(0, ...data.map((m) => m.id_merk)) + 1;
-      setData((d) => [...d, { id_merk: nextId, merk_wm: nama, wm_digit: digit, jumlahWM: 0 }]);
+      setData((d) => [
+        ...d,
+        {
+          id_merk: Date.now(),
+          wm_kode: kode,
+          merk_wm: nama,
+          wm_digit: digit,
+          jumlahWM: 0,
+        },
+      ]);
     }
     setModalOpen(false);
   };
 
-  const handleDelete = (m: MerkWM) => {
-    if (m.jumlahWM > 0) return;
-    setData((d) => d.filter((x) => x.id_merk !== m.id_merk));
+  const confirmDelete = () => {
+    if (!deletingMerk) return;
+    setData((d) => d.filter((x) => x.id_merk !== deletingMerk.id_merk));
+    setDeletingMerk(null);
+  };
+
+  const handleExport = ({
+    scope,
+    selectedCols,
+  }: {
+    scope: "filtered" | "all";
+    selectedCols: string[];
+  }) => {
+    const target = scope === "filtered" ? filtered : data;
+    const header = selectedCols
+      .map((c) => EXPORT_COLUMNS.find((col) => col.id === c)?.label || c)
+      .join(",");
+
+    const rows = target.map((item) => {
+      return selectedCols
+        .map((col) => {
+          const val = String((item as any)[col] ?? "");
+          return `"${val.replace(/"/g, '""')}"`;
+        })
+        .join(",");
+    });
+
+    const csvContent = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `data-merk-wm-pam-tirta-kamuning-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb & Header */}
-      <div>
-        <p className="text-xs text-slate-500 mb-1">
-          PDAM Tirta / Master Data /{" "}
-          <span className="text-pdam-primary font-semibold">Data Merk Water Meter</span>
-        </p>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
-              Manajemen Merk Water Meter
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Kelola daftar merk WM beserta jumlah digit angka pada dial meteran.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs">
-              <Download className="w-4 h-4 text-pdam-primary" />
-              <span>Export Data Merk</span>
-            </button>
-            <button
-              onClick={openAdd}
-              className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white font-semibold normal-case border-0 shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Merk Baru</span>
-            </button>
-          </div>
-        </div>
+      {/* Header */}
+      <PageHeader
+        title="Manajemen Merk Water Meter"
+        subtitle="Kelola master data merk dan jumlah digit meteran air (`merk_wm`) untuk standar pembacaan meter di PAM Tirta Kamuning."
+        badge="Master Data PAM Tirta Kamuning"
+        badgeVariant="primary"
+      >
+        <button
+          onClick={() => setExportModalOpen(true)}
+          className="btn btn-sm btn-outline border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Ekspor CSV
+        </button>
+        <button
+          onClick={openAdd}
+          className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Tambah Merk
+        </button>
+      </PageHeader>
+
+      {/* KPI Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          title="Total Merk Terdaftar"
+          value={data.length}
+          subtext="Merk tervalidasi standar teknis"
+          icon={<Gauge className="w-5 h-5" />}
+          variant="primary"
+        />
+        <StatCard
+          title="Total Populasi Unit WM"
+          value={totalWM.toLocaleString("id-ID")}
+          subtext="Seluruh aset meter di 9 cabang"
+          icon={<Layers className="w-5 h-5" />}
+          variant="navy"
+        />
+        <StatCard
+          title="Standar Digit Mayoritas"
+          value="5 Digit"
+          subtext="93.5% populasi meter terpasang"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          variant="emerald"
+        />
       </div>
 
-      {/* Statistik */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              TOTAL MERK TERDAFTAR
-            </p>
-            <div className="p-1.5 rounded-md bg-pdam-primary/10 text-pdam-primary">
-              <Gauge className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-navy tabular-nums">
-              {data.length}
-            </span>
-            <span className="text-xs font-bold text-slate-500">Merk</span>
-          </div>
-        </div>
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <p className="text-[10px] font-bold text-pdam-primary uppercase tracking-wider mb-1">
-            TOTAL WM TERDATA
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-pdam-primary tabular-nums">
-              {totalWM.toLocaleString("id-ID")}
-            </span>
-            <span className="text-xs font-bold text-pdam-primary">Unit</span>
-          </div>
-        </div>
+      {/* Search Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <SearchInput
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            setCurrentPage(1);
+          }}
+          placeholder="Cari nama merk atau kode (misal: ITR, LIN)..."
+          className="w-full sm:max-w-md"
+        />
+
+        {search && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setCurrentPage(1);
+            }}
+            className="text-xs text-slate-500 hover:text-pdam-primary underline shrink-0"
+          >
+            Hapus Pencarian
+          </button>
+        )}
       </div>
 
-      {/* Search + Tabel */}
-      <div className="card bg-white border border-slate-200/90 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari merk water meter..."
-              className="input input-bordered input-sm w-full pl-9 text-xs bg-pdam-bg/50 border-slate-200 focus:border-pdam-primary focus:bg-white"
-            />
-          </div>
-          <span className="text-xs text-slate-500">
-            Menampilkan {filtered.length} dari {data.length} merk
-          </span>
-        </div>
-
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="table table-sm w-full">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-pdam-bg text-pdam-navy text-[11px] uppercase tracking-wider border-b border-slate-200 font-bold">
-                <th className="py-3.5 pl-5">ID</th>
-                <th className="py-3.5">MERK WATER METER</th>
-                <th className="py-3.5">JUMLAH DIGIT</th>
-                <th className="py-3.5 text-right">UNIT WM TERDATA</th>
-                <th className="py-3.5 text-right pr-5">AKSI</th>
+              <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-3 px-4">Kode</th>
+                <th className="py-3 px-4">Nama Merk Water Meter</th>
+                <th className="py-3 px-4 text-center">Digit Stand</th>
+                <th className="py-3 px-4 text-right">Populasi Unit</th>
+                <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {filtered.map((m) => (
-                <tr key={m.id_merk} className="hover:bg-pdam-bg/60 transition-colors">
-                  <td className="py-3.5 pl-5 font-mono text-slate-400">
-                    MRK-{String(m.id_merk).padStart(3, "0")}
-                  </td>
-                  <td className="py-3.5 font-bold text-pdam-navy">{m.merk_wm}</td>
-                  <td className="py-3.5">
-                    <span className="badge badge-sm border border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary font-bold">
-                      {m.wm_digit} Digit
+              {paginated.map((item) => (
+                <tr key={item.id_merk} className="hover:bg-slate-50/60 transition-colors">
+                  <td className="py-3.5 px-4 font-mono font-bold text-pdam-primary">
+                    <span className="bg-pdam-primary/10 border border-pdam-primary/20 px-2 py-0.5 rounded text-xs">
+                      {item.wm_kode}
                     </span>
                   </td>
-                  <td className="py-3.5 text-right tabular-nums text-slate-600">
-                    {m.jumlahWM.toLocaleString("id-ID")}
+                  <td className="py-3.5 px-4 font-semibold text-slate-800">
+                    {item.merk_wm}
                   </td>
-                  <td className="py-3.5 pr-5">
-                    <div className="flex items-center justify-end gap-3">
+                  <td className="py-3.5 px-4 text-center">
+                    <span className="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs font-mono font-bold">
+                      {item.wm_digit} digit
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right font-bold text-pdam-navy tabular-nums">
+                    {item.jumlahWM.toLocaleString("id-ID")}{" "}
+                    <span className="font-normal text-slate-400 text-[11px]">Unit</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <div className="inline-flex items-center gap-1">
                       <button
-                        onClick={() => openEdit(m)}
-                        className="text-pdam-primary font-semibold hover:text-pdam-navy hover:underline inline-flex items-center gap-1"
+                        onClick={() => openEdit(item)}
+                        className="btn btn-xs btn-ghost text-slate-600 hover:text-pdam-primary hover:bg-pdam-primary/10"
+                        title="Edit Merk"
                       >
-                        <Pencil className="w-3 h-3" /> Edit
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(m)}
-                        disabled={m.jumlahWM > 0}
+                        onClick={() => setDeletingMerk(item)}
+                        disabled={item.jumlahWM > 0}
+                        className="btn btn-xs btn-ghost text-rose-500 hover:bg-rose-50 disabled:opacity-30 disabled:pointer-events-none"
                         title={
-                          m.jumlahWM > 0
-                            ? "Tidak dapat dihapus: masih dipakai data water meter"
-                            : "Hapus merk"
+                          item.jumlahWM > 0
+                            ? "Merk masih berelasi dengan aset water meter"
+                            : "Hapus Merk"
                         }
-                        className="text-slate-400 font-semibold hover:text-pdam-red hover:underline inline-flex items-center gap-1 disabled:opacity-40 disabled:no-underline disabled:hover:text-slate-400 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="w-3 h-3" /> Hapus
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+
+              {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-400">
-                    Data merk tidak ditemukan.
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                    Tidak ada merk water meter yang sesuai kriteria pencarian.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        <div className="p-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            onPageChange={setCurrentPage}
+            startIndex={(currentPage - 1) * itemsPerPage}
+            endIndex={Math.min(currentPage * itemsPerPage, filtered.length)}
+          />
+        </div>
       </div>
 
-      {/* Modal Tambah / Edit */}
-      {modalOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-md bg-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-extrabold text-pdam-navy">
-                {editing ? "Edit Merk Water Meter" : "Tambah Merk Baru"}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="btn btn-ghost btn-xs btn-square text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <label className="form-control w-full">
-                <span className="text-[11px] font-bold text-pdam-navy uppercase mb-1">
-                  Nama Merk
-                </span>
-                <input
-                  type="text"
-                  value={form.merk_wm}
-                  maxLength={50}
-                  onChange={(e) => setForm({ ...form, merk_wm: e.target.value })}
-                  placeholder="contoh: Itron"
-                  className="input input-bordered input-sm w-full text-xs border-slate-200"
-                />
-              </label>
-              <label className="form-control w-full">
-                <span className="text-[11px] font-bold text-pdam-navy uppercase mb-1">
-                  Jumlah Digit
-                </span>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.wm_digit}
-                  onChange={(e) => setForm({ ...form, wm_digit: e.target.value })}
-                  placeholder="contoh: 5"
-                  className="input input-bordered input-sm w-full text-xs border-slate-200"
-                />
-                <span className="text-[10px] text-slate-400 mt-1">
-                  Dipakai untuk validasi input stand meter oleh teknisi.
-                </span>
-              </label>
-              {error && <p className="text-xs text-pdam-red font-medium">{error}</p>}
-            </div>
-
-            <div className="modal-action">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="btn btn-sm btn-ghost border border-slate-200 normal-case font-semibold text-slate-600"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSave}
-                className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white border-0 normal-case font-semibold"
-              >
-                Simpan
-              </button>
-            </div>
+      {/* Add / Edit Modal */}
+      <BaseModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? "Ubah Data Merk" : "Tambah Merk Water Meter Baru"}
+        subtitle="Data akan tersimpan di tabel master `merk_wm`."
+        icon={<Gauge className="w-5 h-5 text-pdam-primary" />}
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">
+              Kode Merk (wm_kode) *
+            </label>
+            <input
+              type="text"
+              value={form.wm_kode}
+              onChange={(e) => setForm({ ...form, wm_kode: e.target.value })}
+              placeholder="Contoh: ITR, LIN, ACT"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono uppercase text-slate-800 focus:outline-none focus:ring-2 focus:ring-pdam-primary/30 focus:border-pdam-primary"
+            />
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              Maksimal 10 karakter kode singkatan merk.
+            </span>
           </div>
-          <div className="modal-backdrop bg-black/40" onClick={() => setModalOpen(false)} />
+
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">
+              Nama Merk (merk_wm) *
+            </label>
+            <input
+              type="text"
+              value={form.merk_wm}
+              onChange={(e) => setForm({ ...form, merk_wm: e.target.value })}
+              placeholder="Contoh: Itron, Onda, Linflow"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-pdam-primary/30 focus:border-pdam-primary"
+            />
+            <span className="text-[10px] text-slate-400 mt-1 block">
+              Maksimal 50 karakter nama pabrikan/merk.
+            </span>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">
+              Jumlah Digit Stand Meter (wm_digit) *
+            </label>
+            <select
+              value={form.wm_digit}
+              onChange={(e) => setForm({ ...form, wm_digit: e.target.value })}
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-pdam-primary/30 focus:border-pdam-primary"
+            >
+              {[4, 5, 6, 7, 8].map((d) => (
+                <option key={d} value={d}>
+                  {d} Digit
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 text-xs text-rose-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="btn btn-sm btn-ghost text-slate-600 hover:bg-slate-100"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none shadow-xs"
+            >
+              Simpan
+            </button>
+          </div>
         </div>
-      )}
+      </BaseModal>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={!!deletingMerk}
+        onClose={() => setDeletingMerk(null)}
+        onConfirm={confirmDelete}
+        itemName={deletingMerk?.merk_wm || ""}
+        itemType="merk water meter"
+        warningText="Merk tidak dapat dihapus jika masih ada unit water meter yang terhubung dengannya."
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        columns={EXPORT_COLUMNS}
+        totalFiltered={filtered.length}
+        totalAll={data.length}
+        onExport={handleExport}
+      />
     </div>
   );
 }
