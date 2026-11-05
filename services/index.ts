@@ -1,4 +1,5 @@
 export * from "./apiClient";
-export * from "./authService";
-export * from "./waterMeterService";
+
+export { authService, type UserProfile, type LoginResult } from "./authService";
+
 export * from "./dashboardService";

@@ -1,51 +1,58 @@
 import { apiClient } from "./apiClient";
 
-export interface DashboardSummaryResponse {
-  status: string;
-  data: {
-    periode: string;
-    target_tahunan: number;
-    realisasi_penggantian: number;
-    persentase_realisasi: number;
-    spk: {
-      total: number;
-      pending: number;
-      proses: number;
-      selesai: number;
-      dibatalkan: number;
-    };
-    inventaris_wm: {
-      total: number;
-      tersedia_di_unit: number;
-      terpasang: number;
-      rusak: number;
-      tarik: number;
-    };
+export interface DashboardSummary {
+  periode: string;
+  total_pelanggan: number;
+  spk: {
+    total: number;
+    pending: number;
+    proses: number;
+    selesai: number;
+    dibatalkan: number;
   };
+  penggantian_wm: {
+    total: number;
+    menunggu: number;
+    disetujui: number;
+    ditolak: number;
+  };
+  pengiriman_wm: {
+    total_wm_dikirim: number;
+  };
+  target_tahunan: number | null;
+  persentase_realisasi: number | null;
 }
 
 export interface UnitBranchProgress {
-  id_unit: number;
+  id_unit: string;
   nama_unit: string;
-  target: number;
+  target: number | null;
   realisasi: number;
-  persentase: number;
+  persentase: number | null;
+}
+
+interface ApiResponse<T> {
+  status: "success" | "error";
+  message: string;
+  data: T;
 }
 
 export const dashboardService = {
-  /**
-   * Mengambil metrik ringkasan dashboard eksekutif
-   */
-  async getSummary(params?: { id_unit?: number | string; periode?: string }) {
-    return apiClient.get<DashboardSummaryResponse>("/dashboard/summary", params);
+  async getSummary(params?: {
+    periode?: string;
+  }): Promise<ApiResponse<DashboardSummary>> {
+    return apiClient.get<ApiResponse<DashboardSummary>>(
+      "/dashboard/summary",
+      params,
+    );
   },
 
-  /**
-   * Mengambil rekap progres penggantian 9 cabang PAM Tirta Kamuning
-   */
-  async getUnitProgress() {
-    return apiClient.get<{ status: string; data: UnitBranchProgress[] }>(
-      "/dashboard/unit-progress"
+  async getUnitProgress(params?: {
+    periode?: string;
+  }): Promise<ApiResponse<UnitBranchProgress[]>> {
+    return apiClient.get<ApiResponse<UnitBranchProgress[]>>(
+      "/dashboard/unit-progress",
+      params,
     );
   },
 };

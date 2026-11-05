@@ -1,29 +1,46 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark, cupcake;
+  themes:
+    light --default,
+    dark --prefersdark,
+    cupcake;
 }
 
 @theme {
-  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --color-pdam-primary: #0082C6;
-  --color-pdam-navy: #0D5B75;
-  --color-pdam-red: #C01C1C;
-  --color-pdam-bg: #F4F6F9;
+  --font-sans:
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-pdam-primary: #0082c6;
+  --color-pdam-navy: #0d5b75;
+  --color-pdam-red: #c01c1c;
+  --color-pdam-bg: #f4f6f9;
 }
 
-:root, [data-theme="light"] {
-  --color-primary: #0082C6;
+:root,
+[data-theme="light"] {
+  --color-primary: #0082c6;
   --color-primary-content: #ffffff;
-  --color-secondary: #0D5B75;
+  --color-secondary: #0d5b75;
   --color-secondary-content: #ffffff;
-  --color-error: #C01C1C;
+  --color-error: #c01c1c;
   --color-error-content: #ffffff;
   --color-base-100: #ffffff;
-  --color-base-200: #F4F6F9;
-  --color-base-300: #E5E9F0;
-  --color-base-content: #1E293B;
+  --color-base-200: #f4f6f9;
+  --color-base-300: #e5e9f0;
+  --color-base-content: #1e293b;
+}
+
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 body {
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }

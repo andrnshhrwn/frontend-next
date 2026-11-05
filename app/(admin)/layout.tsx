@@ -1,9 +1,13 @@
-import DashboardLayoutWrapper from '@/components/layouts/DashboardLayoutWrapper';
+import AdminLayout from "@/components/layouts/AdminLayout";
 
 export default function DashboardGroupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayoutWrapper>{children}</DashboardLayoutWrapper>;
+  return (
+    <>
+      <AdminLayout>{children}</AdminLayout>
+    </>
+  );
 }

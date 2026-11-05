@@ -17,117 +17,152 @@ import {
   AlertCircle,
   UserCheck,
   MapPin,
-  Upload,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+
+import {
+  penugasanService,
+  teknisiService,
+  type Penugasan,
+  type PenugasanStatus,
+  type Teknisi,
+} from "@/services/penugasanService";
+
+import { apiClient, getStoredUser } from "@/services/apiClient";
 
 /* ------------------------------------------------------------------ */
-/* Types & data                                                        */
+/* Types                                                               */
 /* ------------------------------------------------------------------ */
 
-type Status = "Pending" | "Proses" | "Selesai" | "Dibatalkan"; // enum penugasan.status
-type Label = "URGENT" | "RUTIN" | "KEDALUWARSA" | "INVESTIGASI" | "PRIORITAS";
-type Cabang = "Kuningan" | "Cilimus" | "Cigugur" | "Ciawi" | "Luragung" | "Kadugede" | "Garawangi" | "Japara" | "Cidahu";
+type StatusFilter = "Semua" | PenugasanStatus;
 
-interface Ticket {
+interface Pelanggan {
+  id_pelanggan: string;
+  id_pelanggan_pdam: string;
+  id_unit: string;
+  nama: string;
+  alamat: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface TicketInput {
+  id_pelanggan: string;
+  id_unit: string;
+  alasan: string;
+}
+
+interface TicketView {
   id: string;
+  nomorSpk: string;
   tanggal: string;
-  cabang: Cabang;
+  cabang: string;
   pelanggan: string;
   idPelanggan: string;
   alamat: string;
   alasan: string;
-  label: Label;
   teknisi: string | null;
-  status: Status;
-  catatan?: string;
+  status: PenugasanStatus;
+  raw: Penugasan;
 }
 
-const initialTickets: Ticket[] = [
-  { id: "TICK-26-0842", tanggal: "26 Agu • 08:30", cabang: "Kuningan", pelanggan: "Bambang Sutedjo", idPelanggan: "PLG-KNG-089211", alamat: "Jl. Siliwangi No. 120, Kuningan", alasan: "Bodi Retak/Bocor", label: "URGENT", teknisi: null, status: "Pending" },
-  { id: "TICK-26-0841", tanggal: "26 Agu • 08:15", cabang: "Cilimus", pelanggan: "Koperasi Tirta Mandiri", idPelanggan: "PLG-CLM-091480", alamat: "Jl. Raya Bojong No. 25, Cilimus", alasan: "Meteran Macet", label: "RUTIN", teknisi: "Asep Saepudin", status: "Proses" },
-  { id: "TICK-26-0839", tanggal: "25 Agu • 09:45", cabang: "Cigugur", pelanggan: "H. Ridwan Mansyur", idPelanggan: "PLG-CGG-002104", alamat: "Jl. Sukamulya No. 18, Cigugur", alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA", teknisi: "Nana Sutrisna", status: "Selesai" },
-  { id: "TICK-26-0838", tanggal: "25 Agu • 08:10", cabang: "Ciawi", pelanggan: "CV. Agro Ciawi Mandiri", idPelanggan: "PLG-CAW-078199", alamat: "Jl. Raya Ciawi-Gebang No. 44", alasan: "Bodi Korosi Parah", label: "INVESTIGASI", teknisi: null, status: "Pending" },
-  { id: "TICK-26-0835", tanggal: "24 Agu • 14:40", cabang: "Luragung", pelanggan: "Puskesmas DTP Luragung", idPelanggan: "PLG-LRG-014802", alamat: "Jl. Raya Luragung No. 65", alasan: "Komersial DN 50", label: "PRIORITAS", teknisi: "Dadang Suhendar", status: "Proses" },
-  { id: "TICK-26-0831", tanggal: "24 Agu • 10:10", cabang: "Kadugede", pelanggan: "Hartono Kusumo", idPelanggan: "PLG-KDG-003892", alamat: "Desa Kadugede RT 03/RW 02", alasan: "Kaca Register Buram", label: "RUTIN", teknisi: "Yudi Herdiana", status: "Selesai" },
-  { id: "TICK-26-0828", tanggal: "23 Agu • 11:20", cabang: "Garawangi", pelanggan: "Siti Rahmawati Putri", idPelanggan: "PLG-GRW-055102", alamat: "Jl. Raya Garawangi No. 12", alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA", teknisi: "Wawan Gunawan", status: "Selesai" },
-  { id: "TICK-26-0824", tanggal: "22 Agu • 15:30", cabang: "Japara", pelanggan: "Dra. Endang Purwanti", idPelanggan: "PLG-JPR-014805", alamat: "Desa Dukuhdalem, Japara", alasan: "Meteran Macet", label: "RUTIN", teknisi: "Iman Rohiman", status: "Selesai" },
-  { id: "TICK-26-0819", tanggal: "21 Agu • 13:15", cabang: "Cidahu", pelanggan: "PT. Pangan Lestari Kuningan", idPelanggan: "PLG-CDH-078210", alamat: "Jl. Raya Cieurih-Cidahu No. 8", alasan: "Bodi Retak/Bocor", label: "URGENT", teknisi: "Eka Prasetya", status: "Selesai" },
-];
+/* ------------------------------------------------------------------ */
+/* Constants                                                           */
+/* ------------------------------------------------------------------ */
 
-// Mock master pelanggan (sumber: tabel pelanggan PAM Tirta Kamuning)
-const pelangganList = [
-  { id: "PLG-KNG-089211", nama: "Bambang Sutedjo", alamat: "Jl. Siliwangi No. 120, Kuningan", cabang: "Kuningan" as Cabang },
-  { id: "PLG-CLM-091480", nama: "Koperasi Tirta Mandiri", alamat: "Jl. Raya Bojong No. 25, Cilimus", cabang: "Cilimus" as Cabang },
-  { id: "PLG-CGG-002104", nama: "H. Ridwan Mansyur", alamat: "Jl. Sukamulya No. 18, Cigugur", cabang: "Cigugur" as Cabang },
-  { id: "PLG-CAW-078199", nama: "CV. Agro Ciawi Mandiri", alamat: "Jl. Raya Ciawi-Gebang No. 44", cabang: "Ciawi" as Cabang },
-  { id: "PLG-LRG-014802", nama: "Puskesmas DTP Luragung", alamat: "Jl. Raya Luragung No. 65", cabang: "Luragung" as Cabang },
-  { id: "PLG-KDG-003892", nama: "Hartono Kusumo", alamat: "Desa Kadugede RT 03/RW 02", cabang: "Kadugede" as Cabang },
-  { id: "PLG-GRW-055102", nama: "Siti Rahmawati Putri", alamat: "Jl. Raya Garawangi No. 12", cabang: "Garawangi" as Cabang },
-  { id: "PLG-JPR-014805", nama: "Dra. Endang Purwanti", alamat: "Desa Dukuhdalem, Japara", cabang: "Japara" as Cabang },
-  { id: "PLG-CDH-078210", nama: "PT. Pangan Lestari Kuningan", alamat: "Jl. Raya Cieurih-Cidahu No. 8", cabang: "Cidahu" as Cabang },
-];
-
-const alasanOptions: { alasan: string; label: Label }[] = [
-  { alasan: "Bodi Retak/Bocor", label: "URGENT" },
-  { alasan: "Bodi Korosi Parah", label: "INVESTIGASI" },
-  { alasan: "Meteran Macet", label: "RUTIN" },
-  { alasan: "Kaca Register Buram", label: "RUTIN" },
-  { alasan: "Kedaluwarsa >5 Thn", label: "KEDALUWARSA" },
-  { alasan: "Komersial DN 50", label: "PRIORITAS" },
-];
-
-const teknisiByCabang: Record<Cabang, { nama: string; aktif: number }[]> = {
-  Kuningan: [{ nama: "Dede Suryana", aktif: 2 }, { nama: "Agus Mulyana", aktif: 1 }],
-  Cilimus: [{ nama: "Asep Saepudin", aktif: 3 }, { nama: "Fajar Hidayat", aktif: 0 }],
-  Cigugur: [{ nama: "Nana Sutrisna", aktif: 1 }, { nama: "Budi Santoso", aktif: 2 }],
-  Ciawi: [{ nama: "Dadang Suhendar", aktif: 2 }, { nama: "Ujang Koswara", aktif: 1 }],
-  Luragung: [{ nama: "Yudi Herdiana", aktif: 3 }, { nama: "Ahmad Sanusi", aktif: 0 }],
-  Kadugede: [{ nama: "Wawan Gunawan", aktif: 1 }, { nama: "Teguh Pratama", aktif: 2 }],
-  Garawangi: [{ nama: "Iman Rohiman", aktif: 2 }, { nama: "Rahmat Hidayat", aktif: 1 }],
-  Japara: [{ nama: "Eka Prasetya", aktif: 1 }, { nama: "Dani Darmawan", aktif: 0 }],
-  Cidahu: [{ nama: "Cecep Supriadi", aktif: 2 }, { nama: "Ade Suherman", aktif: 1 }],
+const statusLabel: Record<PenugasanStatus, string> = {
+  pending: "Pending",
+  proses: "Proses",
+  selesai: "Selesai",
+  dibatalkan: "Dibatalkan",
 };
 
-const statusClass: Record<Status, string> = {
-  Pending: "border-pdam-red/30 bg-pdam-red/10 text-pdam-red",
-  Proses: "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary",
-  Selesai: "border-pdam-navy/30 bg-pdam-navy/10 text-pdam-navy",
-  Dibatalkan: "border-slate-300 bg-slate-100 text-slate-500",
+const statusClass: Record<PenugasanStatus, string> = {
+  pending: "border-pdam-red/30 bg-pdam-red/10 text-pdam-red",
+  proses: "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary",
+  selesai: "border-pdam-navy/30 bg-pdam-navy/10 text-pdam-navy",
+  dibatalkan: "border-slate-300 bg-slate-100 text-slate-500",
 };
 
-const labelClass: Record<Label, string> = {
-  URGENT: "border-pdam-red/30 bg-pdam-red/10 text-pdam-red",
-  INVESTIGASI: "border-amber-500/30 bg-amber-500/10 text-amber-700",
-  PRIORITAS: "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary",
-  RUTIN: "border-slate-200 bg-slate-100 text-slate-600",
-  KEDALUWARSA: "border-indigo-200 bg-indigo-50 text-indigo-700",
-};
+const statusFilters: {
+  label: string;
+  value: StatusFilter;
+}[] = [
+  { label: "Semua SPK", value: "Semua" },
+  { label: "Pending Disposisi", value: "pending" },
+  { label: "Dalam Pengerjaan", value: "proses" },
+  { label: "Selesai", value: "selesai" },
+  { label: "Dibatalkan", value: "dibatalkan" },
+];
+
+const labelCls = "text-[11px] font-bold text-pdam-navy uppercase mb-1 block";
+
+const btnGhost =
+  "btn btn-sm btn-ghost border border-slate-200 normal-case font-semibold text-slate-600";
+
+const btnPrimary =
+  "btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white border-0 normal-case font-semibold";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+function formatDate(value: string) {
+  const date = new Date(value);
 
-function formatNow() {
-  const d = new Date();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${d.getDate()} ${BULAN[d.getMonth()]} • ${hh}:${mm}`;
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function toTicket(item: Penugasan): TicketView {
+  return {
+    id: item.id_penugasan,
+    nomorSpk: item.nomor_spk,
+    tanggal: formatDate(item.tgl_penugasan),
+    cabang: item.unit?.nama_unit ?? "-",
+    pelanggan: item.pelanggan?.nama ?? "-",
+    idPelanggan: item.pelanggan?.id_pelanggan_pdam ?? "-",
+    alamat: item.pelanggan?.alamat ?? "-",
+    alasan: item.alasan,
+    teknisi: item.teknisi?.fullname ?? null,
+    status: item.status,
+    raw: item,
+  };
+}
+
+function csvCell(value: string | number) {
+  return `"${String(value).replace(/"/g, '""')}"`;
 }
 
 function downloadFile(filename: string, content: string, mime: string) {
   const blob = new Blob(["\uFEFF" + content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
+
   a.href = url;
   a.download = filename;
   a.click();
+
   URL.revokeObjectURL(url);
 }
-
-const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
 
 /* ------------------------------------------------------------------ */
 /* Modal shell                                                         */
@@ -150,38 +185,42 @@ function Modal({
 }) {
   return (
     <div className="modal modal-open">
-      <div className={`modal-box bg-white p-0 ${wide ? "max-w-2xl" : "max-w-md"}`}>
+      <div
+        className={`modal-box bg-white p-0 ${wide ? "max-w-2xl" : "max-w-md"}`}
+      >
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-slate-200">
           <div>
             <h3 className="font-extrabold text-pdam-navy">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+
+            {subtitle && (
+              <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+            )}
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-xs btn-square text-slate-400">
+
+          <button
+            onClick={onClose}
+            className="btn btn-ghost btn-xs btn-square text-slate-400"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
+
         <div className="px-6 py-5">{children}</div>
+
         {footer && (
           <div className="px-6 py-4 border-t border-slate-200 bg-pdam-bg/50 flex justify-end gap-2">
             {footer}
           </div>
         )}
       </div>
+
       <div className="modal-backdrop bg-black/40" onClick={onClose} />
     </div>
   );
 }
 
-const labelCls = "text-[11px] font-bold text-pdam-navy uppercase mb-1 block";
-const selectCls =
-  "select select-bordered select-sm w-full text-xs border-slate-200 bg-white focus:border-pdam-primary";
-const btnGhost =
-  "btn btn-sm btn-ghost border border-slate-200 normal-case font-semibold text-slate-600";
-const btnPrimary =
-  "btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white border-0 normal-case font-semibold";
-
 /* ------------------------------------------------------------------ */
-/* Modal: Export                                                       */
+/* Export modal                                                        */
 /* ------------------------------------------------------------------ */
 
 function ExportModal({
@@ -190,54 +229,68 @@ function ExportModal({
   filteredData,
 }: {
   onClose: () => void;
-  allData: Ticket[];
-  filteredData: Ticket[];
+  allData: TicketView[];
+  filteredData: TicketView[];
 }) {
-  const [format, setFormat] = useState<"xlsx" | "csv">("xlsx");
   const [scope, setScope] = useState<"filter" | "all">("filter");
+
   const rows = scope === "filter" ? filteredData : allData;
 
-  const header = ["ID Tiket", "Tanggal", "Cabang", "Pelanggan", "Alamat", "Alasan", "Prioritas", "Teknisi", "Status"];
-  const toRow = (t: Ticket) => [
-    t.id,
-    t.tanggal,
-    t.cabang,
-    t.pelanggan,
-    t.alamat,
-    t.alasan,
-    t.label,
-    t.teknisi ?? "-",
-    t.status,
-  ];
-
   const handleExport = () => {
+    const header = [
+      "Nomor SPK",
+      "Tanggal",
+      "Unit",
+      "ID Pelanggan",
+      "Nama Pelanggan",
+      "Alamat",
+      "Alasan",
+      "Teknisi",
+      "Status",
+    ];
+
+    const dataRows = rows.map((item) => [
+      item.nomorSpk,
+      item.tanggal,
+      item.cabang,
+      item.idPelanggan,
+      item.pelanggan,
+      item.alamat,
+      item.alasan,
+      item.teknisi ?? "-",
+      statusLabel[item.status],
+    ]);
+
+    const csv = [
+      header.map(csvCell).join(","),
+      ...dataRows.map((row) => row.map(csvCell).join(",")),
+    ].join("\n");
+
     const stamp = new Date().toISOString().slice(0, 10);
-    if (format === "csv") {
-      const csv = [header.map(csvCell).join(",")]
-        .concat(rows.map((r) => toRow(r).map(csvCell).join(",")))
-        .join("\n");
-      downloadFile(`penugasan-${stamp}.csv`, csv, "text/csv;charset=utf-8");
-    } else {
-      // TODO: ganti dengan SheetJS (xlsx) untuk file .xlsx asli.
-      // Sementara: tab-separated yang dibuka Excel sebagai .xls.
-      const tsv = [header.join("\t")].concat(rows.map((r) => toRow(r).join("\t"))).join("\n");
-      downloadFile(`penugasan-${stamp}.xls`, tsv, "application/vnd.ms-excel");
-    }
+
+    downloadFile(`penugasan-${stamp}.csv`, csv, "text/csv;charset=utf-8");
+
     onClose();
   };
 
   return (
     <Modal
       title="Export Data Penugasan"
-      subtitle="Unduh daftar SPK sesuai cakupan yang dipilih."
+      subtitle="Unduh daftar penugasan berdasarkan cakupan data."
       onClose={onClose}
       footer={
         <>
           <button onClick={onClose} className={btnGhost}>
             Batal
           </button>
-          <button onClick={handleExport} disabled={rows.length === 0} className={btnPrimary}>
-            <Download className="w-4 h-4" /> Unduh {rows.length} Tiket
+
+          <button
+            onClick={handleExport}
+            disabled={rows.length === 0}
+            className={btnPrimary}
+          >
+            <Download className="w-4 h-4" />
+            Unduh {rows.length} Penugasan
           </button>
         </>
       }
@@ -245,26 +298,18 @@ function ExportModal({
       <div className="space-y-5">
         <div>
           <span className={labelCls}>Format File</span>
-          <div className="grid grid-cols-2 gap-2">
-            {(["xlsx", "csv"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f)}
-                className={`flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold text-left transition-colors ${
-                  format === f
-                    ? "border-pdam-primary bg-pdam-primary/5 text-pdam-primary"
-                    : "border-slate-200 text-slate-600 hover:bg-pdam-bg"
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                {f === "xlsx" ? "Excel (XLSX)" : "CSV (.csv)"}
-              </button>
-            ))}
+
+          <div className="flex items-center gap-2 rounded-lg border border-pdam-primary bg-pdam-primary/5 p-3">
+            <FileSpreadsheet className="w-4 h-4 text-pdam-primary" />
+            <span className="text-xs font-semibold text-pdam-primary">
+              CSV (.csv)
+            </span>
           </div>
         </div>
 
         <div>
           <span className={labelCls}>Cakupan Data</span>
+
           <div className="space-y-2 text-xs">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -273,8 +318,9 @@ function ExportModal({
                 checked={scope === "filter"}
                 onChange={() => setScope("filter")}
               />
-              Sesuai filter aktif ({filteredData.length} tiket)
+              Sesuai filter aktif ({filteredData.length} penugasan)
             </label>
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
@@ -282,7 +328,7 @@ function ExportModal({
                 checked={scope === "all"}
                 onChange={() => setScope("all")}
               />
-              Semua tiket yang dimuat ({allData.length} tiket)
+              Semua data yang dimuat ({allData.length} penugasan)
             </label>
           </div>
         </div>
@@ -292,360 +338,446 @@ function ExportModal({
 }
 
 /* ------------------------------------------------------------------ */
-/* Modal: Buat Tiket Penugasan (satuan + upload massal CSV)            */
+/* Create modal                                                        */
 /* ------------------------------------------------------------------ */
-
-type TicketInput = {
-  pelanggan: (typeof pelangganList)[number];
-  alasan: string;
-  label: Label;
-  catatan: string;
-};
-
-const MAX_BULK_ROWS = 500;
-
-// Parser CSV/TSV sederhana: mendukung tanda kutip, koma, titik koma, dan tab
-function parseDelimited(text: string): string[][] {
-  const clean = text.replace(/^\uFEFF/, "");
-  const firstLine = clean.split(/\r?\n/)[0] ?? "";
-  const delim = firstLine.includes("\t") ? "\t" : firstLine.includes(";") && !firstLine.includes(",") ? ";" : ",";
-
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = "";
-  let quoted = false;
-
-  for (let i = 0; i < clean.length; i++) {
-    const ch = clean[i];
-    if (quoted) {
-      if (ch === '"' && clean[i + 1] === '"') {
-        cell += '"';
-        i++;
-      } else if (ch === '"') quoted = false;
-      else cell += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === delim) {
-      row.push(cell.trim());
-      cell = "";
-    } else if (ch === "\n" || ch === "\r") {
-      if (ch === "\r" && clean[i + 1] === "\n") i++;
-      row.push(cell.trim());
-      if (row.some((c) => c !== "")) rows.push(row);
-      row = [];
-      cell = "";
-    } else cell += ch;
-  }
-  row.push(cell.trim());
-  if (row.some((c) => c !== "")) rows.push(row);
-  return rows;
-}
 
 function CreateTicketModal({
   onClose,
   onCreate,
-  onBulkCreate,
+  pelanggan,
+  unitId,
 }: {
   onClose: () => void;
-  onCreate: (data: TicketInput) => void;
-  onBulkCreate: (items: TicketInput[]) => void;
+  onCreate: (data: TicketInput) => Promise<void>;
+  pelanggan: Pelanggan[];
+  unitId: string;
 }) {
-  const [tab, setTab] = useState<"single" | "bulk">("single");
-
-  // single
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<(typeof pelangganList)[number] | null>(null);
-  const [alasan, setAlasan] = useState(alasanOptions[0].alasan);
-  const [catatan, setCatatan] = useState("");
+  const [selected, setSelected] = useState<Pelanggan | null>(null);
+  const [alasan, setAlasan] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // bulk
-  const [fileName, setFileName] = useState("");
-  const [parsed, setParsed] = useState<TicketInput[]>([]);
-  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
-
-  const results = pelangganList
+  const results = pelanggan
     .filter(
-      (p) =>
-        p.nama.toLowerCase().includes(query.toLowerCase()) ||
-        p.id.toLowerCase().includes(query.toLowerCase())
+      (item) =>
+        item.nama.toLowerCase().includes(query.toLowerCase()) ||
+        item.id_pelanggan_pdam.toLowerCase().includes(query.toLowerCase()),
     )
-    .slice(0, 5);
+    .slice(0, 10);
 
-  const handleSingle = () => {
-    if (!selected) return setError("Pilih pelanggan terlebih dahulu.");
-    const opt = alasanOptions.find((a) => a.alasan === alasan)!;
-    onCreate({ pelanggan: selected, alasan: opt.alasan, label: opt.label, catatan: catatan.trim() });
-    onClose();
-  };
+  const handleSubmit = async () => {
+    if (!selected) {
+      setError("Pilih pelanggan terlebih dahulu.");
+      return;
+    }
 
-  const templateCsv =
-    "id_pelanggan,alasan,catatan\n" +
-    "PLG-089211,Bodi Retak/Bocor,Bocor di sambungan\n" +
-    "PLG-002104,Meteran Macet,\n";
+    if (!alasan.trim()) {
+      setError("Alasan penugasan wajib diisi.");
+      return;
+    }
 
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    setFileName(file.name);
-    const rows = parseDelimited(await file.text()).slice(1); // baris pertama = header
-    const errs: string[] = [];
-    const items: TicketInput[] = [];
-    const seen = new Set<string>();
+    setSubmitting(true);
+    setError("");
 
-    if (rows.length > MAX_BULK_ROWS)
-      errs.push(`File berisi ${rows.length} baris, hanya ${MAX_BULK_ROWS} baris pertama yang diproses.`);
+    try {
+      await onCreate({
+        id_pelanggan: selected.id_pelanggan,
+        id_unit: unitId,
+        alasan: alasan.trim(),
+      });
 
-    rows.slice(0, MAX_BULK_ROWS).forEach((cols, i) => {
-      const [id = "", alasanInput = "", note = ""] = cols;
-      const rowNo = i + 2;
-      const pel = pelangganList.find((p) => p.id.toLowerCase() === id.toLowerCase());
-      const opt = alasanOptions.find((a) => a.alasan.toLowerCase() === alasanInput.toLowerCase());
-
-      if (!id) return errs.push(`Baris ${rowNo}: ID pelanggan kosong.`);
-      if (!pel) return errs.push(`Baris ${rowNo}: ID pelanggan ${id} tidak ditemukan.`);
-      if (!opt) return errs.push(`Baris ${rowNo}: alasan "${alasanInput || "-"}" tidak dikenali.`);
-      const key = `${pel.id}|${opt.alasan}`;
-      if (seen.has(key)) return errs.push(`Baris ${rowNo}: ${pel.id} dengan alasan yang sama duplikat.`);
-      seen.add(key);
-      items.push({ pelanggan: pel, alasan: opt.alasan, label: opt.label, catatan: note });
-    });
-
-    setParsed(items);
-    setBulkErrors(errs);
-  };
-
-  const handleBulk = () => {
-    if (parsed.length === 0) return;
-    onBulkCreate(parsed);
-    onClose();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal membuat penugasan.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       wide
-      title="Buat Tiket Penugasan"
-      subtitle="Tiket diterbitkan oleh Admin Pusat dengan status awal Pending, lalu didisposisikan ke teknisi."
+      title="Buat Penugasan"
+      subtitle="Penugasan dibuat oleh Admin Cabang dengan status awal Pending."
       onClose={onClose}
       footer={
         <>
           <button onClick={onClose} className={btnGhost}>
             Batal
           </button>
-          {tab === "single" ? (
-            <button onClick={handleSingle} className={btnPrimary}>
-              <Plus className="w-4 h-4" /> Terbitkan Tiket
-            </button>
-          ) : (
-            <button onClick={handleBulk} disabled={parsed.length === 0} className={btnPrimary}>
-              <Upload className="w-4 h-4" /> Import {parsed.length} Tiket
-            </button>
-          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className={btnPrimary}
+          >
+            <Plus className="w-4 h-4" />
+            {submitting ? "Menyimpan..." : "Buat Penugasan"}
+          </button>
         </>
       }
     >
-      <div className="inline-flex p-1 rounded-lg bg-pdam-bg border border-slate-200 mb-5">
-        {(["single", "bulk"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`btn btn-xs normal-case font-semibold border-0 ${
-              tab === t ? "bg-white text-pdam-primary shadow-xs" : "bg-transparent text-slate-500"
-            }`}
-          >
-            {t === "single" ? "Input Satuan" : "Upload Massal (CSV)"}
-          </button>
-        ))}
-      </div>
+      <div className="space-y-4">
+        <div>
+          <label className={labelCls}>Pelanggan</label>
 
-      {tab === "single" ? (
-        <div className="space-y-4">
-          <div>
-            <label className={labelCls}>Pelanggan</label>
-            {selected ? (
-              <div className="flex items-start justify-between rounded-lg border border-pdam-primary/30 bg-pdam-primary/5 p-3">
-                <div>
-                  <p className="text-xs font-bold text-pdam-navy">{selected.nama}</p>
-                  <p className="text-[10px] font-mono text-slate-400">{selected.id}</p>
-                  <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> {selected.alamat} • Cabang {selected.cabang}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="text-[11px] font-semibold text-pdam-primary hover:underline"
-                >
-                  Ubah
-                </button>
+          {selected ? (
+            <div className="flex items-start justify-between rounded-lg border border-pdam-primary/30 bg-pdam-primary/5 p-3">
+              <div>
+                <p className="text-xs font-bold text-pdam-navy">
+                  {selected.nama}
+                </p>
+
+                <p className="text-[10px] font-mono text-slate-400">
+                  {selected.id_pelanggan_pdam}
+                </p>
+
+                <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {selected.alamat}
+                </p>
               </div>
-            ) : (
-              <>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Cari nama atau ID pelanggan..."
-                    className="input input-bordered input-sm w-full pl-9 text-xs border-slate-200 focus:border-pdam-primary"
-                  />
-                </div>
-                <ul className="mt-2 rounded-lg border border-slate-200 divide-y divide-slate-100 max-h-44 overflow-y-auto">
-                  {results.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        onClick={() => setSelected(p)}
-                        className="w-full text-left px-3 py-2 hover:bg-pdam-bg transition-colors"
-                      >
-                        <span className="text-xs font-semibold text-pdam-navy block">{p.nama}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {p.id} • Cabang {p.cabang}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                  {results.length === 0 && (
-                    <li className="px-3 py-4 text-center text-xs text-slate-400">
-                      Pelanggan tidak ditemukan.
-                    </li>
-                  )}
-                </ul>
-              </>
-            )}
-          </div>
 
-          <div>
-            <label className={labelCls}>Alasan Penggantian</label>
-            <select className={selectCls} value={alasan} onChange={(e) => setAlasan(e.target.value)}>
-              {alasanOptions.map((a) => (
-                <option key={a.alasan} value={a.alasan}>
-                  {a.alasan} ({a.label})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelCls}>Catatan (opsional)</label>
-            <textarea
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              rows={3}
-              maxLength={200}
-              placeholder="Informasi tambahan untuk Admin Cabang / teknisi..."
-              className="textarea textarea-bordered w-full text-xs border-slate-200 focus:border-pdam-primary"
-            />
-          </div>
-
-          {error && (
-            <p className="text-xs text-pdam-red font-medium flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> {error}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500">Kolom: id_pelanggan, alasan, catatan</span>
-            <button
-              onClick={() => downloadFile("template-penugasan.csv", templateCsv, "text/csv")}
-              className="text-pdam-primary font-semibold hover:underline"
-            >
-              Unduh template CSV
-            </button>
-          </div>
-
-          <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 hover:border-pdam-primary hover:bg-pdam-primary/5 transition-colors p-6 cursor-pointer text-center">
-            <Upload className="w-6 h-6 text-pdam-primary" />
-            <span className="text-xs font-semibold text-pdam-navy">
-              {fileName || "Klik untuk memilih file CSV"}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              Format .csv, baris pertama sebagai header, maks. {MAX_BULK_ROWS} baris
-            </span>
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-            />
-          </label>
-
-          <p className="text-[11px] text-slate-500">
-            Alasan yang valid: {alasanOptions.map((a) => a.alasan).join(", ")}.
-          </p>
-
-          {fileName && (
-            <div className="space-y-2 text-xs">
-              <p className="flex items-center gap-1.5 text-pdam-primary font-semibold">
-                <CheckCircle2 className="w-4 h-4" /> {parsed.length} baris valid siap diimport
-              </p>
-              {bulkErrors.length > 0 && (
-                <div className="rounded-lg border border-pdam-red/30 bg-pdam-red/5 p-3 max-h-28 overflow-y-auto space-y-0.5">
-                  <p className="font-semibold text-pdam-red flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> {bulkErrors.length} baris dilewati
-                  </p>
-                  {bulkErrors.map((e, i) => (
-                    <p key={i} className="text-[11px] text-slate-600">
-                      {e}
-                    </p>
-                  ))}
-                </div>
-              )}
+              <button
+                onClick={() => setSelected(null)}
+                className="text-[11px] font-semibold text-pdam-primary hover:underline"
+              >
+                Ubah
+              </button>
             </div>
+          ) : (
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari nama atau ID pelanggan..."
+                  className="input input-bordered input-sm w-full pl-9 text-xs border-slate-200 focus:border-pdam-primary"
+                />
+              </div>
+
+              <ul className="mt-2 rounded-lg border border-slate-200 divide-y divide-slate-100 max-h-44 overflow-y-auto">
+                {results.map((item) => (
+                  <li key={item.id_pelanggan}>
+                    <button
+                      onClick={() => setSelected(item)}
+                      className="w-full text-left px-3 py-2 hover:bg-pdam-bg transition-colors"
+                    >
+                      <span className="text-xs font-semibold text-pdam-navy block">
+                        {item.nama}
+                      </span>
+
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {item.id_pelanggan_pdam}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+
+                {results.length === 0 && (
+                  <li className="px-3 py-4 text-center text-xs text-slate-400">
+                    Pelanggan tidak ditemukan.
+                  </li>
+                )}
+              </ul>
+            </>
           )}
         </div>
-      )}
+
+        <div>
+          <label className={labelCls}>Alasan Penugasan</label>
+
+          <textarea
+            value={alasan}
+            onChange={(e) => setAlasan(e.target.value)}
+            rows={3}
+            maxLength={255}
+            placeholder="Masukkan alasan penugasan..."
+            className="textarea textarea-bordered w-full text-xs border-slate-200 focus:border-pdam-primary"
+          />
+        </div>
+
+        {error && (
+          <p className="text-xs text-pdam-red font-medium flex items-center gap-1">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {error}
+          </p>
+        )}
+      </div>
     </Modal>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Modal: Pilih Teknisi                                                */
+/* Edit modal                                                          */
+/* ------------------------------------------------------------------ */
+
+function EditTicketModal({
+  ticket,
+  onClose,
+  onSave,
+}: {
+  ticket: TicketView;
+  onClose: () => void;
+  onSave: (
+    id: string,
+    payload: {
+      tgl_penugasan?: string;
+      alasan?: string;
+    },
+  ) => Promise<void>;
+}) {
+  const [alasan, setAlasan] = useState(ticket.raw.alasan);
+  const [tanggal, setTanggal] = useState(ticket.raw.tgl_penugasan.slice(0, 16));
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!alasan.trim()) {
+      setError("Alasan penugasan wajib diisi.");
+      return;
+    }
+
+    if (!tanggal) {
+      setError("Tanggal penugasan wajib diisi.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await onSave(ticket.id, {
+        alasan: alasan.trim(),
+        tgl_penugasan: new Date(tanggal).toISOString(),
+      });
+
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal memperbarui penugasan.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Edit Penugasan"
+      subtitle={`${ticket.nomorSpk} • ${ticket.pelanggan}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={btnGhost}>
+            Batal
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className={btnPrimary}
+          >
+            {submitting ? "Menyimpan..." : "Simpan Perubahan"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className={labelCls}>Tanggal Penugasan</label>
+          <input
+            type="datetime-local"
+            value={tanggal}
+            onChange={(e) => setTanggal(e.target.value)}
+            className="input input-bordered input-sm w-full text-xs border-slate-200"
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>Alasan Penugasan</label>
+          <textarea
+            value={alasan}
+            onChange={(e) => setAlasan(e.target.value)}
+            rows={4}
+            maxLength={255}
+            className="textarea textarea-bordered w-full text-xs border-slate-200"
+            placeholder="Masukkan alasan penugasan..."
+          />
+        </div>
+
+        <p className="text-[11px] text-slate-400">
+          Pelanggan dan unit tidak dapat diubah melalui formulir ini.
+        </p>
+
+        {error && (
+          <p className="text-xs text-pdam-red flex items-center gap-1">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {error}
+          </p>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Delete modal                                                        */
+/* ------------------------------------------------------------------ */
+
+function DeleteTicketModal({
+  ticket,
+  onClose,
+  onDelete,
+}: {
+  ticket: TicketView;
+  onClose: () => void;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleDelete = async () => {
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await onDelete(ticket.id);
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal menghapus penugasan.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Hapus Penugasan"
+      subtitle={ticket.nomorSpk}
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={btnGhost}>
+            Batal
+          </button>
+
+          <button
+            onClick={handleDelete}
+            disabled={submitting}
+            className="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-0 normal-case font-semibold"
+          >
+            {submitting ? "Menghapus..." : "Ya, Hapus"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+          <div className="flex gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+
+            <div>
+              <p className="text-xs font-bold text-red-700">
+                Konfirmasi penghapusan
+              </p>
+
+              <p className="text-xs text-red-600 mt-1">
+                Anda akan menghapus penugasan untuk pelanggan{" "}
+                <strong>{ticket.pelanggan}</strong>. Tindakan ini tidak dapat
+                dibatalkan.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Penghapusan hanya diperbolehkan jika status Pending atau Dibatalkan
+          dan penugasan belum memiliki BAP. Backend tetap menjadi pihak yang
+          memvalidasi aturan tersebut.
+        </p>
+
+        {error && <p className="text-xs text-pdam-red">{error}</p>}
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Assign modal                                                        */
 /* ------------------------------------------------------------------ */
 
 function AssignModal({
   ticket,
   onClose,
   onAssign,
+  teknisi,
 }: {
-  ticket: Ticket;
+  ticket: TicketView;
   onClose: () => void;
-  onAssign: (nama: string) => void;
+  onAssign: (id: string) => Promise<void>;
+  teknisi: Teknisi[];
 }) {
   const [chosen, setChosen] = useState("");
-  const list = teknisiByCabang[ticket.cabang];
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleAssign = async () => {
+    if (!chosen) return;
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await onAssign(chosen);
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal menetapkan teknisi.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal
       title="Pilih Teknisi"
-      subtitle={`${ticket.id} • ${ticket.pelanggan} • Cabang ${ticket.cabang}`}
+      subtitle={`${ticket.nomorSpk} • ${ticket.pelanggan} • ${ticket.cabang}`}
       onClose={onClose}
       footer={
         <>
           <button onClick={onClose} className={btnGhost}>
             Batal
           </button>
+
           <button
-            onClick={() => {
-              onAssign(chosen);
-              onClose();
-            }}
-            disabled={!chosen}
+            onClick={handleAssign}
+            disabled={!chosen || submitting}
             className={btnPrimary}
           >
-            <UserCheck className="w-4 h-4" /> Tugaskan
+            <UserCheck className="w-4 h-4" />
+            {submitting ? "Menyimpan..." : "Tugaskan"}
           </button>
         </>
       }
     >
       <p className="text-[11px] text-slate-500 mb-3">
-        Menampilkan teknisi unit Cabang {ticket.cabang}. Status tiket akan menjadi{" "}
-        <strong className="text-pdam-primary">Proses</strong> setelah ditugaskan.
+        Pilih teknisi dari unit yang sama dengan penugasan ini. Penetapan
+        teknisi tidak otomatis mengubah status penugasan.
       </p>
+
       <ul className="space-y-2">
-        {list.map((t) => (
-          <li key={t.nama}>
+        {teknisi.map((item) => (
+          <li key={item.id_user}>
             <label
               className={`flex items-center justify-between rounded-lg border p-3 cursor-pointer transition-colors ${
-                chosen === t.nama
+                chosen === item.id_user
                   ? "border-pdam-primary bg-pdam-primary/5"
                   : "border-slate-200 hover:bg-pdam-bg"
               }`}
@@ -654,159 +786,300 @@ function AssignModal({
                 <input
                   type="radio"
                   className="radio radio-xs radio-primary"
-                  checked={chosen === t.nama}
-                  onChange={() => setChosen(t.nama)}
+                  checked={chosen === item.id_user}
+                  onChange={() => setChosen(item.id_user)}
                 />
-                <span className="text-xs font-semibold text-pdam-navy">{t.nama}</span>
+
+                <span className="text-xs font-semibold text-pdam-navy">
+                  {item.fullname}
+                </span>
               </span>
-              <span
-                className={`badge badge-sm font-bold border ${
-                  t.aktif >= 3
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700"
-                    : "border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary"
-                }`}
-              >
-                {t.aktif} tugas aktif
+
+              <span className="text-[10px] text-slate-400">
+                {item.username}
               </span>
             </label>
           </li>
         ))}
+
+        {teknisi.length === 0 && (
+          <li className="text-center text-xs text-slate-400 py-5">
+            Tidak ada teknisi yang tersedia.
+          </li>
+        )}
       </ul>
+
+      {error && <p className="text-xs text-pdam-red mt-3">{error}</p>}
     </Modal>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Modal: Detail                                                       */
+/* Cancel confirmation modal                                           */
+/* ------------------------------------------------------------------ */
+
+function CancelTicketModal({
+  ticket,
+  onClose,
+  onConfirm,
+}: {
+  ticket: TicketView;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await onConfirm();
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal membatalkan penugasan.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Batalkan Penugasan"
+      subtitle={ticket.nomorSpk}
+      onClose={submitting ? () => {} : onClose}
+      footer={
+        <>
+          <button onClick={onClose} disabled={submitting} className={btnGhost}>
+            Kembali
+          </button>
+
+          <button
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-0 normal-case font-semibold"
+          >
+            {submitting ? "Memproses..." : "Ya, Batalkan Penugasan"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+          <div className="flex gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+
+            <div>
+              <p className="text-xs font-bold text-red-700">
+                Konfirmasi pembatalan
+              </p>
+
+              <p className="text-xs text-red-600 mt-1">
+                Apakah Anda yakin ingin membatalkan penugasan ini? Status
+                penugasan akan berubah menjadi <strong>Dibatalkan</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">
+              Nomor SPK
+            </p>
+            <p className="text-xs font-semibold text-pdam-navy">
+              {ticket.nomorSpk}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">
+              Pelanggan
+            </p>
+            <p className="text-xs font-semibold text-pdam-navy">
+              {ticket.pelanggan}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase">
+              Unit
+            </p>
+            <p className="text-xs font-semibold text-pdam-navy">
+              {ticket.cabang}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Pembatalan tidak menghapus data SPK. Data tetap tersimpan dengan
+          status Dibatalkan.
+        </p>
+
+        {error && (
+          <p className="text-xs text-pdam-red flex items-center gap-1">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {error}
+          </p>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Detail modal                                                        */
 /* ------------------------------------------------------------------ */
 
 function DetailModal({
   ticket,
   onClose,
   onPickTeknisi,
-  onCancel,
+  onRequestCancel,
+  isAdminCabang,
 }: {
-  ticket: Ticket;
+  ticket: TicketView;
   onClose: () => void;
   onPickTeknisi: () => void;
-  onCancel: () => void;
+  onRequestCancel: () => void;
+  isAdminCabang: boolean;
 }) {
-  const [confirmCancel, setConfirmCancel] = useState(false);
-
-  const timeline: { judul: string; ket: string }[] = [
-    { judul: "Tiket diterbitkan Admin Pusat", ket: ticket.tanggal },
-  ];
-  if (ticket.teknisi)
-    timeline.push({ judul: "Teknisi ditugaskan", ket: `${ticket.teknisi} • Cabang ${ticket.cabang}` });
-  if (ticket.status === "Selesai")
-    timeline.push({ judul: "Pekerjaan selesai & terverifikasi", ket: "Laporan teknisi diverifikasi Admin Cabang" });
-  if (ticket.status === "Dibatalkan")
-    timeline.push({ judul: "Tiket dibatalkan", ket: "Tidak ada penggantian dilakukan" });
-
   const Row = ({ k, v }: { k: string; v: ReactNode }) => (
     <div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{k}</p>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+        {k}
+      </p>
+
       <p className="text-xs font-semibold text-pdam-navy mt-0.5">{v}</p>
     </div>
   );
 
+  const timeline = [
+    {
+      judul: "Penugasan dibuat",
+      ket: formatDate(ticket.raw.tgl_penugasan),
+    },
+  ];
+
+  if (ticket.teknisi) {
+    timeline.push({
+      judul: "Teknisi ditetapkan",
+      ket: ticket.teknisi,
+    });
+  }
+
+  if (ticket.status === "selesai") {
+    timeline.push({
+      judul: "Penugasan selesai",
+      ket: "Status penugasan selesai",
+    });
+  }
+
+  if (ticket.status === "dibatalkan") {
+    timeline.push({
+      judul: "Penugasan dibatalkan",
+      ket: "Status penugasan dibatalkan",
+    });
+  }
+
   return (
     <Modal
       wide
-      title="Detail Tiket Penugasan"
-      subtitle="Informasi SPK dan riwayat alur penugasan."
+      title="Detail Penugasan"
+      subtitle="Informasi penugasan dan data terkait."
       onClose={onClose}
       footer={
         <>
-          {ticket.status === "Pending" &&
-            (confirmCancel ? (
-              <>
-                <span className="text-xs text-slate-500 self-center mr-auto">
-                  Yakin batalkan tiket ini?
-                </span>
-                <button onClick={() => setConfirmCancel(false)} className={btnGhost}>
-                  Tidak
-                </button>
-                <button
-                  onClick={() => {
-                    onCancel();
-                    onClose();
-                  }}
-                  className="btn btn-sm bg-pdam-red hover:bg-pdam-red/90 text-white border-0 normal-case font-semibold"
-                >
-                  Ya, Batalkan
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setConfirmCancel(true)}
-                  className="btn btn-sm btn-ghost text-pdam-red hover:bg-pdam-red/10 normal-case font-semibold mr-auto"
-                >
-                  Batalkan Tiket
-                </button>
-                <button onClick={onClose} className={btnGhost}>
-                  Tutup
-                </button>
+          {isAdminCabang && ticket.status === "pending" && (
+            <>
+              {!ticket.teknisi && (
                 <button onClick={onPickTeknisi} className={btnPrimary}>
-                  <UserCheck className="w-4 h-4" /> Pilih Teknisi
+                  <UserCheck className="w-4 h-4" />
+                  Pilih Teknisi
                 </button>
-              </>
-            ))}
-          {ticket.status !== "Pending" && (
-            <button onClick={onClose} className={btnGhost}>
-              Tutup
-            </button>
+              )}
+
+              <button
+                onClick={onRequestCancel}
+                className="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-0 normal-case font-semibold"
+              >
+                <X className="w-4 h-4" />
+                Batalkan Penugasan
+              </button>
+            </>
           )}
+
+          <button onClick={onClose} className={btnGhost}>
+            Tutup
+          </button>
         </>
       }
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <p className="font-mono font-bold text-lg text-pdam-primary">{ticket.id}</p>
+          <p className="font-mono font-bold text-lg text-pdam-primary">
+            {ticket.nomorSpk}
+          </p>
+
           <p className="text-[11px] text-slate-500">{ticket.tanggal}</p>
         </div>
-        <span className={`badge badge-md font-bold border ${statusClass[ticket.status]}`}>
-          {ticket.status}
+
+        <span
+          className={`badge badge-md font-bold border ${statusClass[ticket.status]}`}
+        >
+          {statusLabel[ticket.status]}
         </span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-5 border-b border-slate-200">
         <Row k="Pelanggan" v={ticket.pelanggan} />
-        <Row k="ID Pelanggan" v={<span className="font-mono">{ticket.idPelanggan}</span>} />
-        <Row k="Cabang" v={ticket.cabang} />
+
+        <Row
+          k="ID Pelanggan"
+          v={<span className="font-mono">{ticket.idPelanggan}</span>}
+        />
+
+        <Row k="Unit" v={ticket.cabang} />
+
         <div className="col-span-2 sm:col-span-3">
           <Row k="Alamat" v={ticket.alamat} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 py-5 border-b border-slate-200">
-        <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Alasan</p>
-          <div className="flex items-center gap-1.5">
-            <span className={`badge badge-xs font-bold border ${labelClass[ticket.label]}`}>
-              {ticket.label}
-            </span>
-            <span className="text-xs font-semibold text-pdam-navy">{ticket.alasan}</span>
-          </div>
-        </div>
-        <Row k="Teknisi" v={ticket.teknisi ?? <span className="text-slate-400">Belum ditugaskan</span>} />
-        {ticket.catatan && (
-          <div className="col-span-2">
-            <Row k="Catatan" v={ticket.catatan} />
-          </div>
-        )}
+        <Row k="Alasan" v={ticket.alasan} />
+
+        <Row
+          k="Teknisi"
+          v={
+            ticket.teknisi ?? (
+              <span className="text-slate-400">Belum ditugaskan</span>
+            )
+          }
+        />
+
+        <Row k="Pembuat" v={ticket.raw.pembuat?.fullname ?? "-"} />
       </div>
 
       <div className="pt-5">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Riwayat</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+          Riwayat
+        </p>
+
         <ul className="space-y-3">
-          {timeline.map((t, i) => (
-            <li key={i} className="flex gap-3">
+          {timeline.map((item, index) => (
+            <li key={index} className="flex gap-3">
               <span className="mt-1 w-2 h-2 rounded-full bg-pdam-primary shrink-0" />
+
               <div>
-                <p className="text-xs font-semibold text-pdam-navy">{t.judul}</p>
-                <p className="text-[11px] text-slate-500">{t.ket}</p>
+                <p className="text-xs font-semibold text-pdam-navy">
+                  {item.judul}
+                </p>
+
+                <p className="text-[11px] text-slate-500">{item.ket}</p>
               </div>
             </li>
           ))}
@@ -820,10 +1093,25 @@ function DetailModal({
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
-type StatusFilter = "Semua" | "Pending" | "Proses" | "Selesai";
-
 export default function PenugasanPusatPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const currentUser = getStoredUser();
+
+  const isAdminPusat = currentUser?.role === "admin_pusat";
+  const isAdminCabang = currentUser?.role === "admin_cabang";
+
+  // ID unit dari backend berupa UUID string.
+  const unitId = currentUser?.id_unit ? String(currentUser.id_unit) : "";
+
+  const unitName = currentUser?.nama_unit ?? "Unit";
+
+  const [tickets, setTickets] = useState<TicketView[]>([]);
+  const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
+  const [teknisi, setTeknisi] = useState<Teknisi[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [loadingTeknisi, setLoadingTeknisi] = useState(false);
+  const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
   const [cabangFilter, setCabangFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
@@ -832,23 +1120,123 @@ export default function PenugasanPusatPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [assignId, setAssignId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
-  // Modal membaca tiket terbaru dari state lewat id
-  const assignTicket = tickets.find((t) => t.id === assignId) ?? null;
-  const detailTicket = tickets.find((t) => t.id === detailId) ?? null;
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filtered = tickets.filter((t) => {
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const editTicket = tickets.find((item) => item.id === editId) ?? null;
+
+  const deleteTicket = tickets.find((item) => item.id === deleteId) ?? null;
+
+  const assignTicket = tickets.find((item) => item.id === assignId) ?? null;
+
+  const detailTicket = tickets.find((item) => item.id === detailId) ?? null;
+
+  const cancelTicket = tickets.find((item) => item.id === cancelId) ?? null;
+
+  /* ---------------------------------------------------------------- */
+  /* Load data                                                         */
+  /* ---------------------------------------------------------------- */
+
+  const loadData = useCallback(async () => {
+    if (!isAdminPusat && !isAdminCabang) {
+      setError("Anda tidak memiliki akses ke halaman penugasan.");
+      setLoading(false);
+      return;
+    }
+
+    if (isAdminCabang && !unitId) {
+      setError("Data unit pada akun Anda tidak valid.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await penugasanService.findAll();
+
+      // Backend sudah menerapkan buildAccessScope berdasarkan role.
+      // Tidak perlu melakukan filter unit lagi di frontend.
+      setTickets(data.map(toTicket));
+
+      if (isAdminCabang) {
+        const pelangganResponse =
+          await apiClient.get<ApiResponse<Pelanggan[]>>("/pelanggan");
+
+        if (!pelangganResponse.success) {
+          throw new Error(
+            pelangganResponse.message || "Gagal mengambil data pelanggan.",
+          );
+        }
+
+        const pelangganData = pelangganResponse.data ?? [];
+
+        setPelanggan(pelangganData.filter((item) => item.id_unit === unitId));
+      } else {
+        setPelanggan([]);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal mengambil data penugasan.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdminPusat, isAdminCabang, unitId]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  /* ---------------------------------------------------------------- */
+  /* Load technicians when needed                                      */
+  /* ---------------------------------------------------------------- */
+
+  const loadTeknisi = async () => {
+    if (!isAdminCabang) return;
+
+    setLoadingTeknisi(true);
+    setError("");
+
+    try {
+      const data = await teknisiService.findAll();
+
+      setTeknisi(data.filter((item) => item.id_unit === unitId));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal mengambil data teknisi.",
+      );
+    } finally {
+      setLoadingTeknisi(false);
+    }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Filter                                                            */
+  /* ---------------------------------------------------------------- */
+
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return (
-      (statusFilter === "Semua" || t.status === statusFilter) &&
-      (!cabangFilter || t.cabang === cabangFilter) &&
-      (!q ||
-        t.id.toLowerCase().includes(q) ||
-        t.pelanggan.toLowerCase().includes(q) ||
-        t.idPelanggan.toLowerCase().includes(q) ||
-        t.cabang.toLowerCase().includes(q))
-    );
-  });
+
+    return tickets.filter((item) => {
+      return (
+        (statusFilter === "Semua" || item.status === statusFilter) &&
+        (!cabangFilter || item.cabang === cabangFilter) &&
+        (!q ||
+          item.id.toLowerCase().includes(q) ||
+          item.nomorSpk.toLowerCase().includes(q) ||
+          item.pelanggan.toLowerCase().includes(q) ||
+          item.idPelanggan.toLowerCase().includes(q) ||
+          item.cabang.toLowerCase().includes(q) ||
+          item.alasan.toLowerCase().includes(q))
+      );
+    });
+  }, [tickets, search, cabangFilter, statusFilter]);
 
   const resetFilter = () => {
     setSearch("");
@@ -856,92 +1244,137 @@ export default function PenugasanPusatPage() {
     setStatusFilter("Semua");
   };
 
-  const updateTicket = (id: string, patch: Partial<Ticket>) =>
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  /* ---------------------------------------------------------------- */
+  /* Statistics                                                        */
+  /* ---------------------------------------------------------------- */
 
-  const handleCreate = ({
-    pelanggan,
-    alasan,
-    label,
-    catatan,
-  }: {
-    pelanggan: (typeof pelangganList)[number];
-    alasan: string;
-    label: Label;
-    catatan: string;
-  }) => {
-    const maxNo = Math.max(0, ...tickets.map((t) => {
-      const match = t.id.match(/\d+$/);
-      return match ? Number(match[0]) : 0;
-    }));
-    const nextNo = maxNo > 0 ? maxNo + 1 : 1001;
-    setTickets((prev) => [
-      {
-        id: `TICK-26-${nextNo}`,
-        tanggal: formatNow(),
-        cabang: pelanggan.cabang,
-        pelanggan: pelanggan.nama,
-        idPelanggan: pelanggan.id,
-        alamat: pelanggan.alamat,
-        alasan,
-        label,
-        teknisi: null,
-        status: "Pending",
-        catatan: catatan || undefined,
-      },
-      ...prev,
-    ]);
+  const stats = useMemo(
+    () => ({
+      total: tickets.length,
+      pending: tickets.filter((item) => item.status === "pending").length,
+      proses: tickets.filter((item) => item.status === "proses").length,
+      selesai: tickets.filter((item) => item.status === "selesai").length,
+    }),
+    [tickets],
+  );
+
+  const tabs = statusFilters.map((item) => ({
+    ...item,
+    count:
+      item.value === "Semua"
+        ? stats.total
+        : tickets.filter((ticket) => ticket.status === item.value).length,
+  }));
+
+  const units = useMemo(
+    () => [...new Set(tickets.map((item) => item.cabang))].sort(),
+    [tickets],
+  );
+
+  /* ---------------------------------------------------------------- */
+  /* Actions                                                           */
+  /* ---------------------------------------------------------------- */
+
+  const handleCreate = async (payload: TicketInput) => {
+    await penugasanService.create(payload);
+    await loadData();
   };
 
-  const handleBulkCreate = (items: TicketInput[]) => {
-    let no = Math.max(0, ...tickets.map((t) => {
-      const match = t.id.match(/\d+$/);
-      return match ? Number(match[0]) : 0;
-    }));
-    const now = formatNow();
-    const created: Ticket[] = items.map((it) => ({
-      id: `TICK-26-${++no}`,
-      tanggal: now,
-      cabang: it.pelanggan.cabang,
-      pelanggan: it.pelanggan.nama,
-      idPelanggan: it.pelanggan.id,
-      alamat: it.pelanggan.alamat,
-      alasan: it.alasan,
-      label: it.label,
-      teknisi: null,
-      status: "Pending",
-      catatan: it.catatan || undefined,
-    }));
-    setTickets((prev) => [...created.reverse(), ...prev]);
+  const handleAssign = async (idTeknisi: string) => {
+    if (!assignTicket) return;
+
+    await penugasanService.assignTeknisi(assignTicket.id, {
+      id_teknisi: idTeknisi,
+    });
+
+    await loadData();
   };
 
-  const tabs: { label: string; value: StatusFilter; count: string }[] = [
-    { label: "Semua SPK", value: "Semua", count: "320" },
-    { label: "Pending Disposisi", value: "Pending", count: "21" },
-    { label: "Dalam Pengerjaan", value: "Proses", count: "32" },
-    { label: "Selesai (Riil)", value: "Selesai", count: "267" },
-  ];
+  const handleUpdate = async (
+    id: string,
+    payload: {
+      tgl_penugasan?: string;
+      alasan?: string;
+    },
+  ) => {
+    await penugasanService.update(id, payload);
+    await loadData();
+  };
+
+  const handleDelete = async (id: string) => {
+    await penugasanService.delete(id);
+    await loadData();
+  };
+
+  // Membatalkan penugasan melalui endpoint khusus, bukan DELETE.
+  const handleCancel = async (ticketId: string) => {
+    await penugasanService.cancel(ticketId);
+
+    // Tutup modal konfirmasi.
+    setCancelId(null);
+
+    // Ambil ulang data terbaru dari backend.
+    await loadData();
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Access control                                                     */
+  /* ---------------------------------------------------------------- */
+
+  if (!isAdminPusat && !isAdminCabang) {
+    return (
+      <div className="card bg-white border border-slate-200 p-6">
+        <p className="text-sm font-semibold text-pdam-red">
+          Anda tidak memiliki akses ke halaman ini.
+        </p>
+      </div>
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Render                                                            */
+  /* ---------------------------------------------------------------- */
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb & Header Title */}
       <div>
         <p className="text-xs text-slate-500 mb-1">
-          <span className="font-semibold text-pdam-primary">PAM Tirta Kamuning</span> / Operasional /{" "}
-          <span className="text-pdam-primary font-semibold">Penugasan Berjenjang</span>
+          <span className="font-semibold text-pdam-primary">
+            PAM Tirta Kamuning
+          </span>{" "}
+          / Operasional /{" "}
+          <span className="text-pdam-primary font-semibold">
+            Penugasan Berjenjang
+          </span>
         </p>
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight text-pdam-navy">
                 Manajemen Penugasan SPK
               </h1>
+
               <span className="badge bg-pdam-primary/10 text-pdam-primary border-pdam-primary/20 text-[10px] font-bold">
-                Pusat &amp; 9 Cabang
+                {isAdminPusat ? "Monitoring Pusat" : unitName}
               </span>
             </div>
+
             <p className="text-xs text-slate-500 mt-0.5">
-              Alur berjenjang: Tiket diterbitkan Admin Pusat, plotting teknisi oleh Admin Cabang, dan eksekusi lapangan.
+              {isAdminPusat
+                ? "Monitoring seluruh penugasan dari unit cabang."
+                : "Kelola penugasan pelanggan dan penetapan teknisi pada unit Anda."}
             </p>
           </div>
 
@@ -951,18 +1384,47 @@ export default function PenugasanPusatPage() {
               className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs"
             >
               <Download className="w-4 h-4 text-pdam-primary" />
-              <span>Export Data (XLSX)</span>
+              <span>Export Data (CSV)</span>
             </button>
+
             <button
-              onClick={() => setShowCreate(true)}
-              className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white font-semibold normal-case border-0 shadow-xs"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs"
             >
-              <Plus className="w-4 h-4" />
-              <span>Buat Tiket Penugasan (Pusat)</span>
+              <RotateCcw
+                className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              <span>Refresh</span>
             </button>
+
+            {isAdminCabang && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white font-semibold normal-case border-0 shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Buat Penugasan</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg border border-pdam-red/30 bg-pdam-red/5 p-3 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-pdam-red mt-0.5" />
+
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-pdam-red">{error}</p>
+          </div>
+
+          <button onClick={() => setError("")} className="text-slate-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 4 Kartu Statistik */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -970,11 +1432,18 @@ export default function PenugasanPusatPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Total SPK Periode Agu 2026
+                Total Penugasan
               </p>
-              <h3 className="text-2xl font-black text-pdam-navy tabular-nums">320</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Akumulasi 9 unit cabang</p>
+
+              <h3 className="text-2xl font-black text-pdam-navy tabular-nums">
+                {stats.total}
+              </h3>
+
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Data yang berhasil dimuat
+              </p>
             </div>
+
             <div className="w-9 h-9 rounded-lg bg-pdam-bg flex items-center justify-center text-pdam-navy border border-slate-200/80">
               <ClipboardList className="w-5 h-5" />
             </div>
@@ -985,11 +1454,18 @@ export default function PenugasanPusatPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-pdam-red uppercase tracking-wider mb-1">
-                Pending (Disposisi Cabang)
+                Pending
               </p>
-              <h3 className="text-2xl font-black text-pdam-red tabular-nums">21</h3>
-              <p className="text-[11px] text-pdam-red/80 mt-0.5">Menunggu penugasan teknisi</p>
+
+              <h3 className="text-2xl font-black text-pdam-red tabular-nums">
+                {stats.pending}
+              </h3>
+
+              <p className="text-[11px] text-pdam-red/80 mt-0.5">
+                Menunggu proses berikutnya
+              </p>
             </div>
+
             <div className="w-9 h-9 rounded-lg bg-pdam-red/10 flex items-center justify-center text-pdam-red border border-pdam-red/20">
               <Clock className="w-5 h-5" />
             </div>
@@ -1002,9 +1478,16 @@ export default function PenugasanPusatPage() {
               <p className="text-[10px] font-bold text-pdam-primary uppercase tracking-wider mb-1">
                 Sedang Dikerjakan
               </p>
-              <h3 className="text-2xl font-black text-pdam-primary tabular-nums">32</h3>
-              <p className="text-[11px] text-pdam-primary/80 mt-0.5">Teknisi di lapangan</p>
+
+              <h3 className="text-2xl font-black text-pdam-primary tabular-nums">
+                {stats.proses}
+              </h3>
+
+              <p className="text-[11px] text-pdam-primary/80 mt-0.5">
+                Penugasan dalam proses
+              </p>
             </div>
+
             <div className="w-9 h-9 rounded-lg bg-pdam-primary/10 flex items-center justify-center text-pdam-primary border border-pdam-primary/20">
               <Activity className="w-5 h-5" />
             </div>
@@ -1015,11 +1498,18 @@ export default function PenugasanPusatPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">
-                Selesai &amp; Terverifikasi
+                Selesai
               </p>
-              <h3 className="text-2xl font-black text-emerald-700 tabular-nums">267</h3>
-              <p className="text-[11px] text-emerald-600 font-medium mt-0.5">Realisasi riil Agustus 2026</p>
+
+              <h3 className="text-2xl font-black text-emerald-700 tabular-nums">
+                {stats.selesai}
+              </h3>
+
+              <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
+                Penugasan selesai
+              </p>
             </div>
+
             <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200">
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -1032,23 +1522,27 @@ export default function PenugasanPusatPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="relative md:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari ID Tiket, Pelanggan, No. Seri, Cabang..."
+              placeholder="Cari ID Penugasan, Pelanggan, ID Pelanggan, Unit..."
               className="input input-bordered input-sm w-full pl-9 text-xs bg-pdam-bg/50 border-slate-200 focus:border-pdam-primary focus:bg-white"
             />
           </div>
+
           <select
             value={cabangFilter}
             onChange={(e) => setCabangFilter(e.target.value)}
+            disabled={isAdminCabang}
             className="select select-bordered select-sm w-full text-xs font-semibold border-slate-200 bg-white text-slate-700"
           >
-            <option value="">Semua Cabang (9 Unit PAM Tirta Kamuning)</option>
-            {(["Kuningan", "Cilimus", "Cigugur", "Ciawi", "Luragung", "Kadugede", "Garawangi", "Japara", "Cidahu"] as Cabang[]).map((c) => (
-              <option key={c} value={c}>
-                Unit Cabang {c}
+            <option value="">{isAdminPusat ? "Semua Unit" : unitName}</option>
+
+            {units.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
               </option>
             ))}
           </select>
@@ -1056,17 +1550,17 @@ export default function PenugasanPusatPage() {
 
         <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-200 gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
-            {tabs.map((t) => (
+            {tabs.map((tab) => (
               <button
-                key={t.value}
-                onClick={() => setStatusFilter(t.value)}
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
                 className={`btn btn-sm font-medium normal-case ${
-                  statusFilter === t.value
+                  statusFilter === tab.value
                     ? "bg-pdam-primary hover:bg-pdam-navy text-white border-0 shadow-xs"
                     : "btn-ghost bg-pdam-bg hover:bg-slate-200 border border-slate-200/80 text-slate-700"
                 }`}
               >
-                {t.label} ({t.count})
+                {tab.label} ({tab.count})
               </button>
             ))}
           </div>
@@ -1087,14 +1581,20 @@ export default function PenugasanPusatPage() {
           <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-pdam-navy">
             Daftar Surat Perintah Kerja (SPK)
             <span className="badge border border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary text-[10px] font-semibold">
-              Aktif Real-time
+              Data Backend
             </span>
           </h3>
+
           <div className="text-xs text-slate-500 flex items-center gap-2">
-            <span>Menampilkan {filtered.length} dari 2,150 tiket</span>
+            <span>
+              Menampilkan {filtered.length} dari {tickets.length} penugasan
+            </span>
+
             <span>•</span>
+
             <span className="flex items-center gap-1 text-emerald-600 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span> Sinkronisasi Terkini
+              <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+              Data dimuat
             </span>
           </div>
         </div>
@@ -1104,7 +1604,7 @@ export default function PenugasanPusatPage() {
             <thead>
               <tr className="bg-pdam-bg text-pdam-navy text-[11px] uppercase tracking-wider border-b border-slate-200 font-bold">
                 <th className="py-3.5 pl-5">ID &amp; Tanggal</th>
-                <th className="py-3.5">Cabang</th>
+                <th className="py-3.5">Unit</th>
                 <th className="py-3.5">Pelanggan &amp; Alamat</th>
                 <th className="py-3.5">Alasan</th>
                 <th className="py-3.5">Teknisi</th>
@@ -1112,63 +1612,121 @@ export default function PenugasanPusatPage() {
                 <th className="py-3.5 text-right pr-5">Aksi</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-slate-100 text-xs">
-              {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-pdam-bg/60 transition-colors">
-                  <td className="py-3.5 pl-5 font-bold">
-                    <span className="text-pdam-primary font-mono block">{item.id}</span>
-                    <span className="text-[10px] text-slate-400 font-normal">{item.tanggal}</span>
-                  </td>
-                  <td className="py-3.5">
-                    <span className="badge bg-slate-100 text-slate-700 border-slate-200 badge-sm font-bold">
-                      {item.cabang}
-                    </span>
-                  </td>
-                  <td className="py-3.5">
-                    <span className="font-semibold text-pdam-navy block">{item.pelanggan}</span>
-                    <span className="text-[10px] text-slate-500">{item.alamat}</span>
-                  </td>
-                  <td className="py-3.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`badge badge-xs font-bold border ${labelClass[item.label]}`}>
-                        {item.label}
-                      </span>
-                      <span className="text-slate-700">{item.alasan}</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5">
-                    {item.teknisi ? (
-                      <span className="font-medium text-slate-700">{item.teknisi}</span>
-                    ) : item.status === "Pending" ? (
-                      <button
-                        onClick={() => setAssignId(item.id)}
-                        className="btn btn-xs btn-outline border-pdam-primary text-pdam-primary hover:bg-pdam-primary hover:text-white font-semibold normal-case"
-                      >
-                        + Pilih
-                      </button>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                  <td className="py-3.5">
-                    <span className={`badge badge-sm font-bold border ${statusClass[item.status]}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-right pr-5">
-                    <button
-                      onClick={() => setDetailId(item.id)}
-                      className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline flex items-center justify-end gap-0.5 ml-auto"
-                    >
-                      Detail <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+              {loading ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400">
-                    Tidak ada tiket yang sesuai filter.
+                    Memuat data penugasan...
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-pdam-bg/60 transition-colors"
+                  >
+                    <td className="py-3.5 pl-5 font-bold">
+                      <span className="text-pdam-primary font-mono block">
+                        {item.nomorSpk}
+                      </span>
+
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        {item.tanggal}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5">
+                      <span className="badge bg-slate-100 text-slate-700 border-slate-200 badge-sm font-bold">
+                        {item.cabang}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5">
+                      <span className="font-semibold text-pdam-navy block">
+                        {item.pelanggan}
+                      </span>
+
+                      <span className="text-[10px] text-slate-500">
+                        {item.alamat}
+                      </span>
+
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        {item.idPelanggan}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5">
+                      <span className="text-slate-700">{item.alasan}</span>
+                    </td>
+
+                    <td className="py-3.5">
+                      {item.teknisi ? (
+                        <span className="font-medium text-slate-700">
+                          {item.teknisi}
+                        </span>
+                      ) : item.status === "pending" && isAdminCabang ? (
+                        <button
+                          onClick={async () => {
+                            setAssignId(item.id);
+                            await loadTeknisi();
+                          }}
+                          className="btn btn-xs btn-outline border-pdam-primary text-pdam-primary hover:bg-pdam-primary hover:text-white font-semibold normal-case"
+                        >
+                          + Pilih
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+
+                    <td className="py-3.5">
+                      <span
+                        className={`badge badge-sm font-bold border ${statusClass[item.status]}`}
+                      >
+                        {statusLabel[item.status]}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 text-right pr-5">
+                      <div className="flex items-center justify-end gap-2">
+                        {isAdminCabang && item.status === "pending" && (
+                          <button
+                            onClick={() => setEditId(item.id)}
+                            className="text-xs font-semibold text-pdam-primary hover:text-pdam-navy hover:underline"
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        {isAdminCabang &&
+                          (item.status === "pending" ||
+                            item.status === "dibatalkan") && (
+                            <button
+                              onClick={() => setDeleteId(item.id)}
+                              className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline"
+                            >
+                              Hapus
+                            </button>
+                          )}
+
+                        <button
+                          onClick={() => setDetailId(item.id)}
+                          className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline flex items-center gap-0.5"
+                        >
+                          Detail
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                    Tidak ada penugasan yang sesuai filter.
                   </td>
                 </tr>
               )}
@@ -1176,60 +1734,96 @@ export default function PenugasanPusatPage() {
           </table>
         </div>
 
-        {/* Footer Pagination */}
+        {/* Footer */}
         <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span>Baris per halaman:</span>
-            <select className="select select-bordered select-xs w-16 border-slate-200 bg-white">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
-            </select>
-            <span>• 1 - {filtered.length} dari 2,150 tiket</span>
+          <div>
+            Menampilkan {filtered.length} data dari {tickets.length} penugasan.
           </div>
 
           <div className="join">
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">|&lt;</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">
+            <button className="join-item btn btn-sm btn-ghost" disabled>
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button className="join-item btn btn-sm bg-pdam-primary text-white font-bold border-0">1</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">2</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">3</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">...</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">215</button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">
+
+            <button className="join-item btn btn-sm bg-pdam-primary text-white font-bold border-0">
+              1
+            </button>
+
+            <button className="join-item btn btn-sm btn-ghost" disabled>
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button className="join-item btn btn-sm btn-ghost hover:bg-pdam-bg">&gt;|</button>
           </div>
         </div>
       </div>
 
-      {/* Modals (dirender sekali di luar tabel) */}
+      {/* Modals */}
       {showExport && (
-        <ExportModal onClose={() => setShowExport(false)} allData={tickets} filteredData={filtered} />
+        <ExportModal
+          onClose={() => setShowExport(false)}
+          allData={tickets}
+          filteredData={filtered}
+        />
       )}
-      {showCreate && (
+
+      {showCreate && isAdminCabang && (
         <CreateTicketModal
           onClose={() => setShowCreate(false)}
           onCreate={handleCreate}
-          onBulkCreate={handleBulkCreate}
+          pelanggan={pelanggan}
+          unitId={unitId}
         />
       )}
-      {assignTicket && (
+
+      {assignTicket && isAdminCabang && (
         <AssignModal
           ticket={assignTicket}
           onClose={() => setAssignId(null)}
-          onAssign={(nama) => updateTicket(assignTicket.id, { teknisi: nama, status: "Proses" })}
+          onAssign={handleAssign}
+          teknisi={loadingTeknisi ? [] : teknisi}
         />
       )}
+
       {detailTicket && !assignTicket && (
         <DetailModal
           ticket={detailTicket}
           onClose={() => setDetailId(null)}
-          onPickTeknisi={() => setAssignId(detailTicket.id)}
-          onCancel={() => updateTicket(detailTicket.id, { status: "Dibatalkan", teknisi: null })}
+          onPickTeknisi={async () => {
+            setDetailId(null);
+            setAssignId(detailTicket.id);
+            await loadTeknisi();
+          }}
+          onRequestCancel={() => {
+            // Tutup modal detail terlebih dahulu.
+            setDetailId(null);
+
+            // Buka modal konfirmasi pembatalan.
+            setCancelId(detailTicket.id);
+          }}
+          isAdminCabang={isAdminCabang}
+        />
+      )}
+
+      {cancelTicket && isAdminCabang && (
+        <CancelTicketModal
+          ticket={cancelTicket}
+          onClose={() => setCancelId(null)}
+          onConfirm={() => handleCancel(cancelTicket.id)}
+        />
+      )}
+
+      {editTicket && isAdminCabang && (
+        <EditTicketModal
+          ticket={editTicket}
+          onClose={() => setEditId(null)}
+          onSave={handleUpdate}
+        />
+      )}
+
+      {deleteTicket && isAdminCabang && (
+        <DeleteTicketModal
+          ticket={deleteTicket}
+          onClose={() => setDeleteId(null)}
+          onDelete={handleDelete}
         />
       )}
     </div>

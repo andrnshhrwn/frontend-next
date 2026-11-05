@@ -5,15 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 
-/**
- * Layout wrapper untuk seluruh halaman admin/dashboard.
- *
- * Membungkus seluruh children dengan:
- * 1. AuthProvider — proteksi autentikasi & RBAC
- * 2. Sidebar (menu navigasi, difilter per role)
- * 3. Header (info user, logout, toggle sidebar)
- */
-export default function DashboardLayoutWrapper({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
