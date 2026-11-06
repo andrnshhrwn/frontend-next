@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { X } from "lucide-react";
 
 interface BaseModalProps {
@@ -11,6 +11,14 @@ interface BaseModalProps {
   icon?: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
   children: React.ReactNode;
+
+  // Area aksi di bagian bawah modal
+  footer?: React.ReactNode;
+
+  // Pengaturan penutupan modal
+  closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
+  preventClose?: boolean;
 }
 
 export function BaseModal({
@@ -21,20 +29,33 @@ export function BaseModal({
   icon,
   maxWidth = "md",
   children,
+  footer,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  preventClose = false,
 }: BaseModalProps) {
+  const handleClose = useCallback(() => {
+    if (preventClose) return;
+    onClose();
+  }, [preventClose, onClose]);
+
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && closeOnEscape) {
+        handleClose();
+      }
     };
-    if (isOpen) {
-      window.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, closeOnEscape, handleClose]);
 
   if (!isOpen) return null;
 
@@ -51,11 +72,14 @@ export function BaseModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
-        onClick={onClose}
+        onClick={closeOnBackdrop ? handleClose : undefined}
       />
 
       {/* Modal Dialog */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className={`relative w-full ${widthClass} bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden transform transition-all z-10`}
       >
         {/* Header */}
@@ -66,14 +90,23 @@ export function BaseModal({
                 {icon}
               </div>
             )}
+
             <div>
-              <h3 className="font-semibold text-slate-800 text-sm md:text-base">{title}</h3>
-              {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+              <h3 className="font-semibold text-slate-800 text-sm md:text-base">
+                {title}
+              </h3>
+
+              {subtitle && (
+                <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+              )}
             </div>
           </div>
+
           <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+            type="button"
+            onClick={handleClose}
+            disabled={preventClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Tutup"
           >
             <X className="w-5 h-5" />
@@ -82,6 +115,13 @@ export function BaseModal({
 
         {/* Content */}
         <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

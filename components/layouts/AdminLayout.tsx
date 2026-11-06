@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
-import Header from '@/components/Header';
-import { AuthProvider } from '@/components/providers/AuthProvider';
+import { useState } from "react";
+import Sidebar from "@/components/layouts/Sidebar";
+import Header from "@/components/layouts/Header";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 export default function AdminLayout({
   children,
@@ -37,9 +37,7 @@ export default function AdminLayout({
           />
 
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-pdam-bg">
-            <div className="max-w-350 w-full mx-auto">
-              {children}
-            </div>
+            <div className="max-w-350 w-full mx-auto">{children}</div>
           </main>
         </div>
 

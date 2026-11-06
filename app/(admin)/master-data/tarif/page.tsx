@@ -21,6 +21,7 @@ import {
   DeleteConfirmModal,
   ExportModal,
   Pagination,
+  useToast,
 } from "@/components/ui";
 
 import {
@@ -44,6 +45,8 @@ const initialForm: TarifForm = {
 const ITEMS_PER_PAGE = 6;
 
 export default function DataTarifPage() {
+  const { showToast } = useToast();
+
   const [data, setData] = useState<Tarif[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -202,8 +205,10 @@ export default function DataTarifPage() {
     try {
       if (editing) {
         await tipeTarifService.update(editing.id_tarif, payload);
+        showToast("Golongan tarif berhasil diperbarui.", "success");
       } else {
         await tipeTarifService.create(payload);
+        showToast("Golongan tarif berhasil ditambahkan.", "success");
       }
 
       await loadData();
@@ -248,6 +253,8 @@ export default function DataTarifPage() {
 
       setDeleteModalOpen(false);
       setDeletingTarif(null);
+
+      showToast("Golongan tarif berhasil dihapus.", "success");
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -304,6 +311,8 @@ export default function DataTarifPage() {
 
     URL.revokeObjectURL(url);
     setExportModalOpen(false);
+
+    showToast("Data golongan tarif berhasil diekspor.", "success");
   };
 
   return (

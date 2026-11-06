@@ -21,18 +21,15 @@ export interface PengirimanWm {
   catatan: string | null;
   id_user_pusat: string;
   created_at: string;
-
   unit_tujuan: {
     id_unit: string;
     nama_unit: string;
   };
-
   user_pusat: {
     id_user: string;
     fullname: string;
     username: string;
   };
-
   details: PengirimanWmDetail[];
 }
 
@@ -55,6 +52,7 @@ export interface UpdatePengirimanWmPayload {
   id_unit_tujuan?: string;
   tgl_pengiriman?: string;
   catatan?: string | null;
+  details?: CreatePengirimanWmDetailPayload[];
 }
 
 interface ApiResponse<T> {

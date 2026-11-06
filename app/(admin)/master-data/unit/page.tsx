@@ -18,6 +18,7 @@ import {
   BaseModal,
   DeleteConfirmModal,
   Pagination,
+  useToast,
 } from "@/components/ui";
 
 import { unitService, type Unit } from "@/services/unitService";
@@ -35,6 +36,8 @@ const EMPTY_FORM: UnitForm = {
 const ITEMS_PER_PAGE = 6;
 
 export default function DataUnitPage() {
+  const { showToast } = useToast();
+
   const [data, setData] = useState<Unit[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -165,8 +168,10 @@ export default function DataUnitPage() {
 
       if (editing) {
         await unitService.update(editing.id_unit, payload);
+        showToast("Data Unit berhasil diperbarui.", "success");
       } else {
         await unitService.create(payload);
+        showToast("Data Unit berhasil ditambahkan.", "success");
       }
 
       setModalOpen(false);
@@ -199,6 +204,7 @@ export default function DataUnitPage() {
       setData((current) => current.filter((unit) => unit.id_unit !== targetId));
 
       setDeletingUnit(null);
+      showToast("Data Unit berhasil dihapus.", "success");
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Gagal menghapus data Unit.",

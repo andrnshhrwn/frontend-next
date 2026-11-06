@@ -28,6 +28,8 @@ export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
+type StorageType = "local" | "session";
+
 // ======================================================
 // API ERROR
 // ======================================================
@@ -53,25 +55,61 @@ export class ApiError extends Error {
 }
 
 // ======================================================
+// STORAGE HELPERS
+// ======================================================
+
+function getStorage(type: StorageType): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  return type === "local" ? window.localStorage : window.sessionStorage;
+}
+
+function getStoredValue(key: string): string | null {
+  const localValue = getStorage("local")?.getItem(key);
+
+  if (localValue !== null && localValue !== undefined) {
+    return localValue;
+  }
+
+  return getStorage("session")?.getItem(key) ?? null;
+}
+
+function setStoredValue(key: string, value: string, rememberMe: boolean): void {
+  const localStorage = getStorage("local");
+  const sessionStorage = getStorage("session");
+
+  if (!localStorage || !sessionStorage) return;
+
+  // Hapus data lama agar tidak ada sesi ganda.
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
+
+  if (rememberMe) {
+    localStorage.setItem(key, value);
+  } else {
+    sessionStorage.setItem(key, value);
+  }
+}
+
+function removeStoredValue(key: string): void {
+  getStorage("local")?.removeItem(key);
+  getStorage("session")?.removeItem(key);
+}
+
+// ======================================================
 // TOKEN STORAGE HELPERS
 // ======================================================
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-
-  return localStorage.getItem(TOKEN_KEY);
+  return getStoredValue(TOKEN_KEY);
 }
 
-export function setAccessToken(token: string): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.setItem(TOKEN_KEY, token);
+export function setAccessToken(token: string, rememberMe: boolean): void {
+  setStoredValue(TOKEN_KEY, token, rememberMe);
 }
 
 export function removeAccessToken(): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.removeItem(TOKEN_KEY);
+  removeStoredValue(TOKEN_KEY);
 }
 
 // ======================================================
@@ -81,7 +119,10 @@ export function removeAccessToken(): void {
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
 
-  const raw = localStorage.getItem(USER_KEY);
+  const localValue = getStorage("local")?.getItem(USER_KEY);
+  const sessionValue = getStorage("session")?.getItem(USER_KEY);
+
+  const raw = localValue ?? sessionValue;
 
   if (!raw) return null;
 
@@ -93,16 +134,12 @@ export function getStoredUser(): StoredUser | null {
   }
 }
 
-export function setStoredUser(user: StoredUser): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+export function setStoredUser(user: StoredUser, rememberMe: boolean): void {
+  setStoredValue(USER_KEY, JSON.stringify(user), rememberMe);
 }
 
 export function removeStoredUser(): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.removeItem(USER_KEY);
+  removeStoredValue(USER_KEY);
 }
 
 // ======================================================
@@ -115,7 +152,6 @@ export async function apiRequest<T = unknown>(
 ): Promise<T> {
   const { params, headers = {}, ...customOptions } = options;
 
-  // Build URL
   let url = `${API_BASE_URL}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
   }`;
@@ -176,7 +212,6 @@ export async function apiRequest<T = unknown>(
       );
     }
 
-    // Parse response
     const data: unknown = await response.json().catch(() => null);
 
     if (!response.ok) {

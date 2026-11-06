@@ -7,3 +7,4 @@ export * from "./Pagination";
 export * from "./BaseModal";
 export * from "./DeleteConfirmModal";
 export * from "./ExportModal";
+export * from "./ToastProvider";

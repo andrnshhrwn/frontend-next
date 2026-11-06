@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "PAM Tirta Kamuning - Panel Manajemen Pergantian Water Meter",
-  description: "Sistem Manajemen Inventori, Monitoring & Operasional Pergantian Water Meter PAM Tirta Kamuning Kabupaten Kuningan",
+  description:
+    "Sistem Manajemen Inventori, Monitoring & Operasional Pergantian Water Meter PAM Tirta Kamuning Kabupaten Kuningan",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} font-sans h-full antialiased`}
     >
       <body className="font-sans min-h-full flex flex-col bg-pdam-bg text-base-content antialiased">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

@@ -8,7 +8,6 @@ import {
   setStoredUser,
   removeStoredUser,
   type StoredUser,
-  type ApiError,
 } from "@/services/apiClient";
 
 // ======================================================
@@ -41,9 +40,13 @@ export interface LoginResult {
 export const authService = {
   /**
    * Login menggunakan username dan password.
-   * Token dan profil pengguna disimpan setelah login berhasil.
+   * Penyimpanan sesi mengikuti pilihan Remember Me.
    */
-  async login(username: string, password: string): Promise<LoginResult> {
+  async login(
+    username: string,
+    password: string,
+    rememberMe = false,
+  ): Promise<LoginResult> {
     const response = await apiClient.post<ApiResponse<LoginResponseData>>(
       "/auth/login",
       {
@@ -58,8 +61,8 @@ export const authService = {
       throw new Error("Respons login dari server tidak valid.");
     }
 
-    setAccessToken(result.token);
-    setStoredUser(result.user);
+    setAccessToken(result.token, rememberMe);
+    setStoredUser(result.user, rememberMe);
 
     return result;
   },
@@ -81,14 +84,14 @@ export const authService = {
   },
 
   /**
-   * Mengambil access token dari localStorage.
+   * Mengambil access token dari storage.
    */
   getToken(): string | null {
     return getAccessToken();
   },
 
   /**
-   * Mengambil profil pengguna dari localStorage.
+   * Mengambil profil pengguna dari storage.
    */
   getCurrentUser(): UserProfile | null {
     return getStoredUser();

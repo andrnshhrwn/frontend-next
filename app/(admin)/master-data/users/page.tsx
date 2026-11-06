@@ -13,7 +13,6 @@ import {
   Lock,
   Pencil,
   KeyRound,
-  X,
   AlertCircle,
   Check,
   CheckCircle2,
@@ -35,7 +34,7 @@ import {
   type UpdateUserPayload,
 } from "@/services/userService";
 import { unitService, type Unit } from "@/services/unitService";
-import { BaseModal } from "@/components/ui";
+import { BaseModal, StatCard, useToast } from "@/components/ui";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -501,19 +500,19 @@ const permissionRows: {
   {
     fitur: "Monitoring status & inventori WM",
     pusat: "all",
-    cabang: "unit",
+    cabang: "none",
     teknisi: "none",
   },
   {
-    fitur: "Kelola master data (tarif, merk WM)",
+    fitur: "Kelola master data (unit, tarif, merk WM)",
     pusat: "all",
     cabang: "none",
     teknisi: "none",
   },
   {
     fitur: "Registrasi stok WM baru",
-    pusat: "none",
-    cabang: "unit",
+    pusat: "all",
+    cabang: "none",
     teknisi: "none",
   },
   {
@@ -537,7 +536,7 @@ const permissionRows: {
   {
     fitur: "Verifikasi hasil lapangan",
     pusat: "all",
-    cabang: "unit",
+    cabang: "none",
     teknisi: "none",
   },
   {
@@ -712,6 +711,8 @@ function IconAction({
 /* ------------------------------------------------------------------ */
 
 export default function DataUserPage() {
+  const { showToast } = useToast();
+
   const [users, setUsers] = useState<User[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
 
@@ -727,8 +728,6 @@ export default function DataUserPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [passwordUser, setPasswordUser] = useState<User | null>(null);
-
-  const [toast, setToast] = useState<string | null>(null);
 
   const loadData = useCallback(async (isRefresh = false) => {
     try {
@@ -758,11 +757,6 @@ export default function DataUserPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
-  const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 3000);
-  };
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -798,13 +792,15 @@ export default function DataUserPage() {
   ) => {
     if (isNew) {
       await userService.create(payload as CreateUserPayload);
-      showToast("Pengguna berhasil ditambahkan.");
+
+      showToast("Pengguna berhasil ditambahkan.", "success");
     } else if (editingUser) {
       await userService.update(
         editingUser.id_user,
         payload as UpdateUserPayload,
       );
-      showToast("Data pengguna berhasil diperbarui.");
+
+      showToast("Data pengguna berhasil diperbarui.", "success");
     }
 
     await loadData(true);
@@ -815,7 +811,7 @@ export default function DataUserPage() {
 
     await userService.update(passwordUser.id_user, { password });
 
-    showToast(`Password ${passwordUser.fullname} berhasil diubah.`);
+    showToast(`Password ${passwordUser.fullname} berhasil diubah.`, "success");
 
     setPasswordUser(null);
   };
@@ -834,6 +830,8 @@ export default function DataUserPage() {
     const date = new Date().toISOString().slice(0, 10);
 
     downloadCsv(`data-pengguna-${date}.csv`, rows);
+
+    showToast("Data pengguna berhasil diekspor.", "success");
   };
 
   return (
@@ -934,63 +932,40 @@ export default function DataUserPage() {
         </button>
       </div>
 
-      {/* Statistik dari API */}
+      {/* Statistik Pengguna */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              TOTAL PENGGUNA
-            </p>
-            <Users className="w-4 h-4 text-pdam-primary" />
-          </div>
-          <span className="text-2xl font-black text-pdam-navy tabular-nums">
-            {users.length}
-          </span>
-          <p className="text-xs text-slate-500 mt-1">Akun terdaftar</p>
-        </div>
+        <StatCard
+          title="Total Pengguna"
+          value={users.length}
+          subtext="Akun terdaftar"
+          icon={<Users className="w-5 h-5" />}
+          variant="primary"
+        />
 
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              ADMIN PUSAT
-            </p>
-            <ShieldCheck className="w-4 h-4 text-pdam-navy" />
-          </div>
-          <span className="text-2xl font-black text-pdam-navy tabular-nums">
-            {roleCounts.admin_pusat}
-          </span>
-          <p className="text-xs text-slate-500 mt-1">Akses global</p>
-        </div>
+        <StatCard
+          title="Admin Pusat"
+          value={roleCounts.admin_pusat}
+          subtext="Akses global"
+          icon={<ShieldCheck className="w-5 h-5" />}
+          variant="navy"
+        />
 
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              ADMIN CABANG
-            </p>
-            <Building2 className="w-4 h-4 text-pdam-primary" />
-          </div>
-          <span className="text-2xl font-black text-pdam-navy tabular-nums">
-            {roleCounts.admin_cabang}
-          </span>
-          <p className="text-xs text-slate-500 mt-1">
-            Akses unit masing-masing
-          </p>
-        </div>
+        <StatCard
+          title="Admin Cabang"
+          value={roleCounts.admin_cabang}
+          subtext="Akses unit masing-masing"
+          icon={<Building2 className="w-5 h-5" />}
+          variant="emerald"
+        />
 
-        <div className="card bg-white border border-slate-200/90 shadow-xs p-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              TEKNISI
-            </p>
-            <UserCog className="w-4 h-4 text-amber-600" />
-          </div>
-          <span className="text-2xl font-black text-pdam-navy tabular-nums">
-            {roleCounts.teknisi}
-          </span>
-          <p className="text-xs text-slate-500 mt-1">Pengguna lapangan</p>
-        </div>
+        <StatCard
+          title="Teknisi"
+          value={roleCounts.teknisi}
+          subtext="Pengguna lapangan"
+          icon={<UserCog className="w-5 h-5" />}
+          variant="amber"
+        />
       </div>
-
       {/* Error */}
       {pageError && (
         <div className="alert alert-error text-sm">
@@ -1221,16 +1196,6 @@ export default function DataUserPage() {
           onClose={() => setPasswordUser(null)}
           onSave={handleChangePassword}
         />
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div className="toast toast-end z-50">
-          <div className="alert bg-pdam-navy text-white text-xs shadow-lg border-0 py-2.5">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{toast}</span>
-          </div>
-        </div>
       )}
     </div>
   );
