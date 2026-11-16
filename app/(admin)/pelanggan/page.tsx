@@ -61,7 +61,7 @@ export default function PelangganPage() {
 
       {/* Info Banner */}
       <div className="card bg-pdam-navy/5 border border-pdam-navy/20 p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="p-2 rounded-lg bg-pdam-navy/10 text-pdam-navy shrink-0 mt-0.5">
             <Info className="w-5 h-5" />
           </div>

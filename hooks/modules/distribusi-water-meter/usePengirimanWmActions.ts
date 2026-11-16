@@ -35,8 +35,13 @@ export function usePengirimanWmActions({
     event.preventDefault();
     setErrorMessage("");
 
-    if (!form.unitTujuan) {
-      setErrorMessage("Silakan pilih unit tujuan.");
+    if (!form.noPengiriman.trim()) {
+      setErrorMessage("Nomor pengiriman wajib diisi.");
+      return;
+    }
+
+    if (!form.tglPengiriman) {
+      setErrorMessage("Tanggal pengiriman wajib diisi.");
       return;
     }
 
@@ -69,7 +74,6 @@ export function usePengirimanWmActions({
     const payload: CreatePengirimanWmPayload = {
       no_pengiriman: form.noPengiriman.trim(),
       tgl_pengiriman: form.tglPengiriman,
-      id_unit_tujuan: form.unitTujuan,
       catatan: form.catatan.trim() || null,
       details,
     };

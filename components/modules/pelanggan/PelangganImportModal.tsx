@@ -65,7 +65,7 @@ function ErrorTable({
 
               return (
                 <tr key={`${item.row}-${index}`}>
-                  <td className="font-mono">{item.row}</td>
+                  <td className="font-sans">{item.row}</td>
 
                   <td className="font-medium">{column || "-"}</td>
 
@@ -193,7 +193,7 @@ export function PelangganImportModal({
             ].map((column) => (
               <span
                 key={column}
-                className="badge badge-sm bg-white border border-slate-200 text-slate-600 font-mono text-[9px]"
+                className="badge badge-sm bg-white border border-slate-200 text-slate-600 font-sans text-[9px]"
               >
                 {column}
               </span>
@@ -398,14 +398,14 @@ export function PelangganImportModal({
                   <tbody>
                     {previewData.preview.map((item, index) => (
                       <tr key={`${item.id_pelanggan_pdam}-${index}`}>
-                        <td className="font-mono">{item.id_pelanggan_pdam}</td>
+                        <td className="font-sans">{item.id_pelanggan_pdam}</td>
 
                         <td>{item.nama}</td>
                         <td>{item.alamat}</td>
 
-                        <td className="font-mono">{item.kode_unit}</td>
+                        <td className="font-sans">{item.kode_unit}</td>
 
-                        <td className="font-mono">{item.kode_tarif}</td>
+                        <td className="font-sans">{item.kode_tarif}</td>
                       </tr>
                     ))}
 

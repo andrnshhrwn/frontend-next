@@ -44,6 +44,13 @@ export interface ValidasiTeknisi {
   role: UserRole;
 }
 
+export interface ValidasiMerkWm {
+  id_merk: string;
+  kode_wm: string;
+  merk_wm: string;
+  wm_digit: number;
+}
+
 export interface ValidasiPenugasan {
   id_penugasan: string;
   nomor_spk: string;
@@ -71,6 +78,9 @@ export interface ValidasiBap {
   path_image_wm_baru: string | null;
 
   tgl_penggantian: string | null;
+
+  id_merk: string | null;
+  merk: ValidasiMerkWm | null;
 
   id_teknisi: string;
   tahap_penggantian: TahapPenggantian;

@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import type { PengirimanWm } from "@/services/pengirimanService";
-import type { Unit } from "@/services/unitService";
 import type { MerkWM } from "@/services/merkWMService";
 
 import type { FormDetailItem } from "@/types/pengirimanWm.types";
@@ -14,7 +13,7 @@ import {
   getTodayDate,
 } from "@/utils/pengirimanWm.utils";
 
-export function usePengirimanWmForm(unitList: Unit[], merkList: MerkWM[]) {
+export function usePengirimanWmForm(merkList: MerkWM[]) {
   const [formModalOpen, setFormModalOpen] = useState(false);
 
   const [editingPengiriman, setEditingPengiriman] =
@@ -22,8 +21,6 @@ export function usePengirimanWmForm(unitList: Unit[], merkList: MerkWM[]) {
 
   const [formNoPengiriman, setFormNoPengiriman] = useState("");
   const [formTglPengiriman, setFormTglPengiriman] = useState(getTodayDate());
-
-  const [formUnitTujuan, setFormUnitTujuan] = useState("");
   const [formCatatan, setFormCatatan] = useState("");
 
   const [formDetails, setFormDetails] = useState<FormDetailItem[]>([]);
@@ -31,7 +28,6 @@ export function usePengirimanWmForm(unitList: Unit[], merkList: MerkWM[]) {
   const resetForm = () => {
     setFormNoPengiriman("");
     setFormTglPengiriman(getTodayDate());
-    setFormUnitTujuan(unitList[0]?.id_unit ?? "");
     setFormCatatan("");
 
     setFormDetails(
@@ -50,7 +46,6 @@ export function usePengirimanWmForm(unitList: Unit[], merkList: MerkWM[]) {
 
     setFormNoPengiriman(item.no_pengiriman);
     setFormTglPengiriman(item.tgl_pengiriman.slice(0, 10));
-    setFormUnitTujuan(item.id_unit_tujuan);
     setFormCatatan(item.catatan ?? "");
 
     setFormDetails(
@@ -107,8 +102,6 @@ export function usePengirimanWmForm(unitList: Unit[], merkList: MerkWM[]) {
     setFormNoPengiriman,
     formTglPengiriman,
     setFormTglPengiriman,
-    formUnitTujuan,
-    setFormUnitTujuan,
     formCatatan,
     setFormCatatan,
     formDetails,

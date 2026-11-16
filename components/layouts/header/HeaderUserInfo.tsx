@@ -26,7 +26,7 @@ export default function HeaderUserInfo({
 
   const displayRole =
     user?.role === "admin_pusat"
-      ? "Admin Pusat (Global)"
+      ? "Admin Pusat"
       : user?.role === "admin_cabang"
         ? "Admin Cabang"
         : user?.role === "teknisi"

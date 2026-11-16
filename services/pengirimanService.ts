@@ -19,13 +19,13 @@ export interface PengirimanWm {
   tgl_pengiriman: string;
   total_wm: number;
   catatan: string | null;
-  id_user_pusat: string;
+  id_user_pencatat: string;
   created_at: string;
   unit_tujuan: {
     id_unit: string;
     nama_unit: string;
   };
-  user_pusat: {
+  user_pencatat: {
     id_user: string;
     fullname: string;
     username: string;
@@ -41,7 +41,6 @@ export interface CreatePengirimanWmDetailPayload {
 
 export interface CreatePengirimanWmPayload {
   no_pengiriman: string;
-  id_unit_tujuan: string;
   tgl_pengiriman: string;
   catatan?: string | null;
   details: CreatePengirimanWmDetailPayload[];
@@ -49,7 +48,6 @@ export interface CreatePengirimanWmPayload {
 
 export interface UpdatePengirimanWmPayload {
   no_pengiriman?: string;
-  id_unit_tujuan?: string;
   tgl_pengiriman?: string;
   catatan?: string | null;
   details?: CreatePengirimanWmDetailPayload[];

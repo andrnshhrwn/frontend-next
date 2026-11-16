@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 import type { TransitionEvent } from "react";
 
 import {
@@ -13,7 +12,6 @@ import {
 } from "lucide-react";
 
 import { BaseModal } from "@/components/ui";
-
 import type { ValidasiReviewModalProps } from "@/types/validasi.types";
 
 import {
@@ -39,6 +37,7 @@ interface PendingView {
 
 export default function ValidasiReviewModal({
   item,
+  canManageValidation,
   onClose,
   onApprove,
   onReject,
@@ -47,6 +46,7 @@ export default function ValidasiReviewModal({
   const status = getStatusLabel(item.status_validasi);
 
   const canValidate =
+    canManageValidation &&
     item.status_validasi === "menunggu" &&
     item.tahap_penggantian === "menunggu_validasi";
 
@@ -58,9 +58,7 @@ export default function ValidasiReviewModal({
   });
 
   const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null);
-
   const [pendingView, setPendingView] = useState<PendingView | null>(null);
-
   const [isPreviewTransitioning, setIsPreviewTransitioning] = useState(false);
 
   const [mode, setMode] = useState<"review" | "reject">("review");
@@ -94,10 +92,6 @@ export default function ValidasiReviewModal({
     },
   ];
 
-  /**
-   * Memulai transisi pergantian konten.
-   * Konten lama akan dibuat transparan terlebih dahulu.
-   */
   const transitionToView = (nextPreview: PreviewImage | null) => {
     if (isPreviewTransitioning || pendingView !== null) return;
 
@@ -108,9 +102,6 @@ export default function ValidasiReviewModal({
     setIsPreviewTransitioning(true);
   };
 
-  /**
-   * Mengganti konten setelah animasi fade-out selesai.
-   */
   const handleTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
     if (
       event.target !== event.currentTarget ||
@@ -149,6 +140,8 @@ export default function ValidasiReviewModal({
   };
 
   const handleApprove = async () => {
+    if (!canValidate || !allChecked || processing) return;
+
     setError("");
 
     try {
@@ -159,6 +152,8 @@ export default function ValidasiReviewModal({
   };
 
   const handleReject = async () => {
+    if (!canValidate || processing) return;
+
     setError("");
 
     const catatan =
@@ -217,7 +212,6 @@ export default function ValidasiReviewModal({
         `}
       >
         {previewImage ? (
-          /* PHOTO PREVIEW */
           <div className="space-y-4">
             <div className="w-full h-[60vh] flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-3">
               <img
@@ -228,17 +222,15 @@ export default function ValidasiReviewModal({
             </div>
           </div>
         ) : (
-          /* BAP DETAIL */
           <div className="space-y-4">
             {/* CUSTOMER SUMMARY */}
-
             <div className="flex items-start justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-pdam-navy">
                   {pelanggan.nama}
                 </p>
 
-                <p className="text-[11px] font-mono text-slate-500">
+                <p className="text-[11px] font-sans text-slate-500">
                   {pelanggan.id_pelanggan_pdam} • {pelanggan.alamat}
                 </p>
 
@@ -260,7 +252,6 @@ export default function ValidasiReviewModal({
             </div>
 
             {/* STATUS INFORMATION */}
-
             {!canValidate && (
               <div
                 className={`rounded-lg border p-3 text-xs flex items-start gap-2 ${
@@ -294,12 +285,16 @@ export default function ValidasiReviewModal({
                       BAP belum berada pada tahap pengajuan validasi.
                     </p>
                   )}
+                  {canManageValidation === false && status === "Menunggu" && (
+                    <p className="mt-1">
+                      BAP sedang menunggu pemeriksaan Admin Pusat.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
             {/* PHOTOS */}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ValidasiPhotoViewer
                 label="Foto WM Lama"
@@ -315,7 +310,6 @@ export default function ValidasiReviewModal({
             </div>
 
             {/* WM COMPARISON */}
-
             <div className="rounded-lg border border-slate-200 overflow-hidden">
               <table className="table table-sm w-full text-xs">
                 <thead>
@@ -332,12 +326,38 @@ export default function ValidasiReviewModal({
                       Nomor Seri
                     </td>
 
-                    <td className="py-2.5 font-mono text-slate-600">
+                    <td className="py-2.5 font-sans text-slate-600">
                       {item.no_seri_wm_lama ?? "-"}
                     </td>
 
-                    <td className="py-2.5 font-mono font-bold text-pdam-primary">
+                    <td className="py-2.5 font-sans font-bold text-pdam-primary">
                       {item.no_seri_wm_baru ?? "-"}
+                    </td>
+                  </tr>
+
+                  {/* MERK WM */}
+                  <tr>
+                    <td className="py-2.5 pl-4 font-bold text-slate-500">
+                      Merk WM
+                    </td>
+
+                    <td className="py-2.5 text-slate-400">-</td>
+
+                    <td className="py-2.5">
+                      {item.merk ? (
+                        <div>
+                          <p className="font-bold text-pdam-primary">
+                            {item.merk.merk_wm}
+                          </p>
+
+                          <p className="text-[10px] text-slate-500">
+                            Kode: {item.merk.kode_wm} • Digit:{" "}
+                            {item.merk.wm_digit}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">Belum tercatat</span>
+                      )}
                     </td>
                   </tr>
 
@@ -346,11 +366,11 @@ export default function ValidasiReviewModal({
                       Stand Meter
                     </td>
 
-                    <td className="py-2.5 font-mono">
+                    <td className="py-2.5 font-sans">
                       {fmtStand(item.stand_wm_lama)}
                     </td>
 
-                    <td className="py-2.5 font-mono font-bold text-pdam-primary">
+                    <td className="py-2.5 font-sans font-bold text-pdam-primary">
                       {fmtStand(item.stand_awal_wm_baru)}
                     </td>
                   </tr>
@@ -372,7 +392,7 @@ export default function ValidasiReviewModal({
                       WM Aktif Sebelumnya
                     </td>
 
-                    <td className="py-2.5 font-mono" colSpan={2}>
+                    <td className="py-2.5 font-sans" colSpan={2}>
                       {pelanggan.wm_no_seri_aktif ?? "-"}
                     </td>
                   </tr>
@@ -381,7 +401,6 @@ export default function ValidasiReviewModal({
             </div>
 
             {/* APPROVAL CHECKLIST */}
-
             {canValidate && mode === "review" && (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <p className="text-xs font-bold text-pdam-navy uppercase mb-2">
@@ -420,7 +439,6 @@ export default function ValidasiReviewModal({
             )}
 
             {/* REJECTION FORM */}
-
             {canValidate && mode === "reject" && (
               <div className="space-y-3">
                 <div>
@@ -469,7 +487,6 @@ export default function ValidasiReviewModal({
             )}
 
             {/* ERROR */}
-
             {error && (
               <p className="text-xs text-pdam-red font-medium flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -478,7 +495,6 @@ export default function ValidasiReviewModal({
             )}
 
             {/* ACTION BUTTONS */}
-
             <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-slate-200">
               {!canValidate ? (
                 <button

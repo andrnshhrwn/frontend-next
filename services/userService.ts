@@ -22,6 +22,12 @@ export interface CreateUserPayload {
   id_unit: string | null;
 }
 
+export interface CreateTeknisiPayload {
+  fullname: string;
+  username: string;
+  password: string;
+}
+
 export interface UpdateUserPayload {
   fullname?: string;
   username?: string;
@@ -61,6 +67,14 @@ export const userService = {
   async create(payload: CreateUserPayload): Promise<User> {
     const response = await apiClient.post<ApiResponse<User>>(
       BASE_ENDPOINT,
+      payload,
+    );
+    return response.data;
+  },
+
+  async createTeknisi(payload: CreateTeknisiPayload): Promise<User> {
+    const response = await apiClient.post<ApiResponse<User>>(
+      `${BASE_ENDPOINT}/teknisi`,
       payload,
     );
     return response.data;

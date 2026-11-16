@@ -41,7 +41,6 @@ export interface SubmitPengirimanOptions {
   editingPengiriman: PengirimanWm | null;
   noPengiriman: string;
   tglPengiriman: string;
-  unitTujuan: string;
   catatan: string;
   details: FormDetailItem[];
 }
@@ -57,17 +56,14 @@ export interface PengirimanWmFormProps {
   isEditing: boolean;
   noPengiriman: string;
   tglPengiriman: string;
-  unitTujuan: string;
   catatan: string;
   details: FormDetailItem[];
-  unitList: Unit[];
   merkList: MerkWM[];
   errorMessage: string;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onNoPengirimanChange: (value: string) => void;
   onTglPengirimanChange: (value: string) => void;
-  onUnitTujuanChange: (value: string) => void;
   onCatatanChange: (value: string) => void;
   onAddDetail: () => void;
   onDetailChange: (
@@ -81,6 +77,7 @@ export interface PengirimanWmFormProps {
 export interface PengirimanWmDetailModalProps {
   isOpen: boolean;
   pengiriman: PengirimanWm | null;
+  canManage: boolean;
   onClose: () => void;
   onEdit: (item: PengirimanWm) => void;
 }
@@ -109,6 +106,7 @@ export interface PengirimanWmHistoryTabProps {
   totalItems: number;
   startIndex: number;
   endIndex: number;
+  canManage: boolean;
   onSearchChange: (value: string) => void;
   onCabangFilterChange: (value: string) => void;
   onPageChange: (page: number) => void;

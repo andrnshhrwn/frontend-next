@@ -54,6 +54,8 @@ export const exportColumns: ValidasiExportColumn[] = [
   { id: "wm_aktif", label: "Nomor Seri WM Aktif" },
   { id: "status", label: "Status Validasi" },
   { id: "catatan", label: "Catatan Validasi" },
+  { id: "merk_wm", label: "Merk WM Baru" },
+  { id: "kode_wm", label: "Kode Merk WM" },
 ];
 
 export function getErrorMessage(error: unknown): string {

@@ -160,7 +160,7 @@ export default function MerkWMFormModal({
           <button
             type="submit"
             disabled={saving}
-            className="btn btn-sm border-none bg-pdam-primary text-white shadow-xs hover:bg-pdam-primary/90 disabled:opacity-50"
+            className="btn btn-sm border-none bg-pdam-primary text-white shadow-xs hover:bg-pdam-navy disabled:opacity-50"
           >
             {saving && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
 

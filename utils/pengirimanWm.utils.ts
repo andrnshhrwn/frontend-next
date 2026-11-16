@@ -75,7 +75,7 @@ export function createDefaultFormDetail(idMerk: string): FormDetailItem {
   return {
     id_merk: idMerk,
     ukuran_dn: DEFAULT_UKURAN_DN,
-    jumlah: 100,
+    jumlah: 1,
   };
 }
 
@@ -83,6 +83,6 @@ export function createEmptyFormDetail(idMerk: string): FormDetailItem {
   return {
     id_merk: idMerk,
     ukuran_dn: DEFAULT_UKURAN_DN,
-    jumlah: 50,
+    jumlah: 1,
   };
 }

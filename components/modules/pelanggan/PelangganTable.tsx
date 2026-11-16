@@ -69,7 +69,7 @@ export function PelangganTable({
                       {item.nama}
                     </span>
 
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-sans text-slate-700 font-semibold">
                       {item.idPelangganPdam}
                     </span>
                   </td>
@@ -97,7 +97,7 @@ export function PelangganTable({
                           Nomor Seri Tercatat
                         </span>
 
-                        <span className="font-mono text-[10px] text-slate-500 block mt-1">
+                        <span className="font-sans text-[10px] text-slate-500 block mt-1">
                           {item.wmNoSeri}
                         </span>
                       </div>
@@ -158,7 +158,7 @@ export function PelangganTable({
             onPageChange={onPageChange}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
-            startIndex={startIndex + 1}
+            startIndex={startIndex}
             endIndex={endIndex}
           />
         </div>

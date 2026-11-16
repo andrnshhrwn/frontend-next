@@ -1,13 +1,9 @@
-import AdminLayout from "@/components/layouts/AdminLayout";
+import { AdminLayoutClient } from "@/components/layouts/AdminLayoutClient";
 
-export default function DashboardGroupLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <AdminLayout>{children}</AdminLayout>
-    </>
-  );
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

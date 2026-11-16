@@ -81,13 +81,6 @@ export default function Header({
             <h1 className="truncate text-sm font-bold leading-tight text-pdam-navy md:text-base">
               Sistem Manajemen &amp; Pergantian Water Meter
             </h1>
-
-            <p className="mt-0.5 truncate text-[11px] text-slate-500 md:text-xs">
-              <span className="font-semibold text-pdam-primary">
-                PAM Tirta Kamuning
-              </span>
-              {" / "}Monitoring Terpusat
-            </p>
           </div>
         </div>
 

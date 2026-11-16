@@ -6,8 +6,6 @@ import { Pagination, SearchInput } from "@/components/ui";
 
 import type { MerkWM } from "@/types/merkWM.types";
 
-import { ITEMS_PER_PAGE } from "@/utils/merkWM.utils";
-
 interface MerkWMTableProps {
   loading: boolean;
   search: string;
@@ -15,6 +13,9 @@ interface MerkWMTableProps {
   filteredLength: number;
   safePage: number;
   totalPages: number;
+  itemsPerPage: number;
+  startIndex: number;
+  endIndex: number;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
   onPageChange: (page: number) => void;
@@ -29,6 +30,9 @@ export default function MerkWMTable({
   filteredLength,
   safePage,
   totalPages,
+  itemsPerPage,
+  startIndex,
+  endIndex,
   onSearchChange,
   onClearSearch,
   onPageChange,
@@ -83,7 +87,7 @@ export default function MerkWMTable({
                     key={item.id_merk}
                     className="transition-colors hover:bg-slate-50/60"
                   >
-                    <td className="px-4 py-3.5 font-mono font-bold text-pdam-primary">
+                    <td className="px-4 py-3.5 font-sans font-bold text-pdam-primary">
                       <span className="rounded border border-pdam-primary/20 bg-pdam-primary/10 px-2 py-0.5 text-xs">
                         {item.kode_wm}
                       </span>
@@ -94,7 +98,7 @@ export default function MerkWMTable({
                     </td>
 
                     <td className="px-4 py-3.5 text-center">
-                      <span className="inline-block rounded bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold text-slate-700">
+                      <span className="inline-block rounded bg-slate-100 px-2 py-0.5 font-sans text-xs font-bold text-slate-700">
                         {item.wm_digit} digit
                       </span>
                     </td>
@@ -144,9 +148,10 @@ export default function MerkWMTable({
               currentPage={safePage}
               totalPages={totalPages}
               totalItems={filteredLength}
+              itemsPerPage={itemsPerPage}
               onPageChange={onPageChange}
-              startIndex={(safePage - 1) * ITEMS_PER_PAGE}
-              endIndex={Math.min(safePage * ITEMS_PER_PAGE, filteredLength)}
+              startIndex={startIndex}
+              endIndex={endIndex}
             />
           </div>
         )}

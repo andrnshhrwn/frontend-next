@@ -36,7 +36,7 @@ export function PelangganDetailModal({
       <div className="mb-5">
         <p className="text-base font-bold text-pdam-navy">{customer.nama}</p>
 
-        <p className="text-[11px] font-mono text-slate-400">
+        <p className="text-[11px] font-sans text-slate-400">
           {customer.idPelangganPdam}
         </p>
       </div>
@@ -78,7 +78,7 @@ export function PelangganDetailModal({
           </p>
 
           {customer.wmNoSeri ? (
-            <p className="text-xs font-mono text-emerald-800 mt-1">
+            <p className="text-xs font-sans text-emerald-800 mt-1">
               Nomor Seri: {customer.wmNoSeri}
             </p>
           ) : (

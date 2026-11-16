@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { merkWMService } from "@/services/merkWMService";
@@ -21,6 +23,8 @@ import {
   validateMerkWMForm,
 } from "@/utils/merkWM.utils";
 
+import { paginate } from "@/utils/pagination.utils";
+
 export function useMerkWM() {
   const { showToast } = useToast();
 
@@ -36,7 +40,6 @@ export function useMerkWM() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const [deletingMerk, setDeletingMerk] = useState<MerkWM | null>(null);
-
   const [editing, setEditing] = useState<MerkWM | null>(null);
 
   const [form, setForm] = useState<MerkWMFormState>({
@@ -46,7 +49,7 @@ export function useMerkWM() {
   const [error, setError] = useState("");
   const [pageError, setPageError] = useState("");
 
-  // Mengambil data Merk WM
+  // Mengambil data Merk WM.
   const loadData = useCallback(async () => {
     setLoading(true);
     setPageError("");
@@ -70,33 +73,38 @@ export function useMerkWM() {
     void loadData();
   }, [loadData]);
 
-  // Pengurutan dan pencarian
+  // Pengurutan dan pencarian.
   const filtered = useMemo(() => {
     const sortedData = sortMerkWM(data);
     return filterMerkWM(sortedData, search);
   }, [data, search]);
 
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  // Pagination menggunakan utility bersama.
+  const pagination = useMemo(
+    () => paginate(filtered, currentPage, ITEMS_PER_PAGE),
+    [filtered, currentPage],
+  );
 
-  const safePage = Math.min(currentPage, totalPages);
+  const {
+    paginatedData: paginated,
+    totalItems,
+    totalPages,
+    safeCurrentPage: safePage,
+    startIndex,
+    endIndex,
+  } = pagination;
 
-  const paginated = useMemo(() => {
-    const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
-
-    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filtered, safePage]);
-
+  // Sinkronisasi halaman jika jumlah data berkurang.
   useEffect(() => {
     if (currentPage !== safePage) {
       setCurrentPage(safePage);
     }
   }, [currentPage, safePage]);
 
-  // Statistik
+  // Statistik.
   const totalWM = data.length;
 
-  // Modal tambah
+  // Modal tambah.
   const openAdd = () => {
     setEditing(null);
     setForm({ ...EMPTY_FORM });
@@ -104,7 +112,7 @@ export function useMerkWM() {
     setModalOpen(true);
   };
 
-  // Modal edit
+  // Modal edit.
   const openEdit = (item: MerkWM) => {
     setEditing(item);
 
@@ -118,7 +126,7 @@ export function useMerkWM() {
     setModalOpen(true);
   };
 
-  // Menutup modal form
+  // Menutup modal form.
   const closeFormModal = () => {
     if (saving) return;
 
@@ -128,7 +136,7 @@ export function useMerkWM() {
     setError("");
   };
 
-  // Simpan data
+  // Simpan data.
   const handleSave = async () => {
     const validationError = validateMerkWMForm(form);
 
@@ -170,7 +178,7 @@ export function useMerkWM() {
     }
   };
 
-  // Konfirmasi hapus
+  // Konfirmasi hapus.
   const confirmDelete = async () => {
     if (!deletingMerk || deleting) return;
 
@@ -198,7 +206,7 @@ export function useMerkWM() {
     }
   };
 
-  // Ekspor CSV
+  // Ekspor CSV.
   const handleExport = ({ scope, selectedCols }: MerkWMExportOptions) => {
     const target = scope === "filtered" ? filtered : data;
 
@@ -211,6 +219,7 @@ export function useMerkWM() {
     showToast("Data merk water meter berhasil diekspor.", "success");
   };
 
+  // Pencarian.
   const clearSearch = () => {
     setSearch("");
     setCurrentPage(1);
@@ -219,6 +228,10 @@ export function useMerkWM() {
   const changeSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return {
@@ -231,6 +244,11 @@ export function useMerkWM() {
     currentPage,
     safePage,
     totalPages,
+    totalItems,
+    startIndex,
+    endIndex,
+    itemsPerPage: ITEMS_PER_PAGE,
+
     paginated,
     filtered,
     totalWM,
@@ -260,5 +278,6 @@ export function useMerkWM() {
     handleExport,
     clearSearch,
     changeSearch,
+    handlePageChange,
   };
 }

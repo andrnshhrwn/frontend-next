@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  AlertCircle,
-  ArrowRight,
-  ArrowUpRight,
-  Loader2,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, Loader2, ShieldCheck } from "lucide-react";
 
 import { Pagination } from "@/components/ui";
 
 import type { ValidasiBap } from "@/services/validasiService";
-
 import type { ValidasiPagination } from "@/types/validasi.types";
 
 import {
@@ -28,6 +21,7 @@ interface ValidasiTableProps {
   page: number;
   total: number;
   pageLimit: number;
+  canManageValidation: boolean;
   onPageChange: (page: number) => void;
   onOpenDetail: (id: string) => void;
 }
@@ -39,12 +33,15 @@ export default function ValidasiTable({
   page,
   total,
   pageLimit,
+  canManageValidation,
   onPageChange,
   onOpenDetail,
 }: ValidasiTableProps) {
-  const currentStart = total === 0 ? 0 : (page - 1) * pageLimit + 1;
+  const currentPage = pagination?.page ?? page;
 
-  const currentEnd = Math.min(page * pageLimit, total);
+  const currentStart = total === 0 ? 0 : (currentPage - 1) * pageLimit;
+
+  const currentEnd = Math.min(currentStart + data.length, total);
 
   return (
     <div className="card bg-white border border-slate-200/90 shadow-xs overflow-hidden">
@@ -88,44 +85,50 @@ export default function ValidasiTable({
               data.map((item) => {
                 const status = getStatusLabel(item.status_validasi);
 
+                const canReviewItem =
+                  canManageValidation && status === "Menunggu";
+
                 return (
                   <tr
                     key={item.id_penggantian}
-                    className="hover:bg-pdam-bg/60 transition-colors"
+                    className="hover:bg-pdam-bg/60 text-xs transition-colors"
                   >
                     <td className="py-3.5 pl-5 font-bold">
-                      <span className="text-pdam-primary font-mono block">
+                      <span className="text-pdam-primary font-sans block">
                         {item.penugasan.nomor_spk}
                       </span>
 
-                      <span className="text-[10px] text-slate-400 font-normal">
+                      <span className="text-xs text-slate-700 font-normal">
                         {formatDate(item.tgl_penggantian)}
                       </span>
                     </td>
 
                     <td className="py-3.5">
-                      <span className="font-bold text-pdam-navy block">
+                      <span className="font-bold text-xs text-pdam-navy block">
                         {item.penugasan.pelanggan.nama}
                       </span>
 
-                      <span className="text-[10px] text-slate-500">
-                        {item.penugasan.unit.nama_unit} •{" "}
-                        {item.penugasan.pelanggan.id_pelanggan_pdam}
+                      <span className="text-xs text-slate-500 flex flex-row gap-0.5 items-center">
+                        <span>{item.penugasan.unit.nama_unit}</span>
+                        <span className="text-xs text-pdam-primary">|</span>
+                        <span className="text-slate-900">
+                          {item.penugasan.pelanggan.id_pelanggan_pdam}
+                        </span>
                       </span>
                     </td>
 
-                    <td className="py-3.5 font-medium text-slate-700">
+                    <td className="py-3.5 font-medium text-xs text-slate-700">
                       {item.teknisi.fullname}
                     </td>
 
                     <td className="py-3.5">
-                      <div className="flex flex-col text-[11px]">
-                        <span className="text-slate-500 font-mono">
+                      <div className="flex flex-col text-xs">
+                        <span className="text-slate-500 font-sans">
                           {item.no_seri_wm_lama ?? "-"} (
                           {fmtStand(item.stand_wm_lama)})
                         </span>
 
-                        <div className="flex items-center gap-1 font-bold font-mono">
+                        <div className="flex items-center gap-1 font-bold font-sans">
                           <ArrowRight className="w-3 h-3 text-pdam-primary shrink-0" />
 
                           <span className="text-pdam-primary">
@@ -149,14 +152,12 @@ export default function ValidasiTable({
                         type="button"
                         onClick={() => onOpenDetail(item.id_penggantian)}
                         className={`btn btn-xs normal-case gap-1 ${
-                          status === "Menunggu"
+                          canReviewItem
                             ? "bg-pdam-primary hover:bg-pdam-navy text-white border-0"
                             : "btn-ghost text-pdam-primary hover:underline"
                         }`}
                       >
-                        {status === "Menunggu"
-                          ? "Periksa & Validasi"
-                          : "Detail BAP"}
+                        {canReviewItem ? "Periksa & Validasi" : "Lihat Detail"}
 
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </button>
@@ -169,15 +170,15 @@ export default function ValidasiTable({
         </table>
       </div>
 
-      {pagination && pagination.totalPages > 0 && (
+      {!loading && pagination && pagination.totalPages > 0 && (
         <div className="px-5 pb-4">
           <Pagination
-            currentPage={page}
+            currentPage={currentPage}
             totalPages={pagination.totalPages}
             onPageChange={onPageChange}
             totalItems={total}
             itemsPerPage={pageLimit}
-            startIndex={currentStart - 1}
+            startIndex={currentStart}
             endIndex={currentEnd}
           />
         </div>

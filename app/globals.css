@@ -7,9 +7,7 @@
 }
 
 @theme {
-  --font-sans:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --color-pdam-primary: #0082c6;
   --color-pdam-navy: #0d5b75;
   --color-pdam-red: #c01c1c;
@@ -43,4 +41,12 @@
 
 body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: -0.005em;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }

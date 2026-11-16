@@ -3,6 +3,7 @@ export const API_BASE_URL =
 
 const TOKEN_KEY = "pdam_access_token";
 const USER_KEY = "pdam_user";
+const SESSION_COOKIE = "pdam_session";
 
 // ======================================================
 // TYPES
@@ -80,7 +81,6 @@ function setStoredValue(key: string, value: string, rememberMe: boolean): void {
 
   if (!localStorage || !sessionStorage) return;
 
-  // Hapus data lama agar tidak ada sesi ganda.
   localStorage.removeItem(key);
   sessionStorage.removeItem(key);
 
@@ -97,7 +97,25 @@ function removeStoredValue(key: string): void {
 }
 
 // ======================================================
-// TOKEN STORAGE HELPERS
+// SESSION COOKIE HELPERS
+// ======================================================
+
+function setSessionCookie(rememberMe: boolean): void {
+  if (typeof document === "undefined") return;
+
+  const maxAge = rememberMe ? `; max-age=${60 * 60 * 24 * 7}` : "";
+
+  document.cookie = `${SESSION_COOKIE}=1; path=/; SameSite=Lax${maxAge}`;
+}
+
+function removeSessionCookie(): void {
+  if (typeof document === "undefined") return;
+
+  document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+}
+
+// ======================================================
+// TOKEN STORAGE
 // ======================================================
 
 export function getAccessToken(): string | null {
@@ -106,23 +124,22 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string, rememberMe: boolean): void {
   setStoredValue(TOKEN_KEY, token, rememberMe);
+  setSessionCookie(rememberMe);
 }
 
 export function removeAccessToken(): void {
   removeStoredValue(TOKEN_KEY);
+  removeSessionCookie();
 }
 
 // ======================================================
-// USER STORAGE HELPERS
+// USER STORAGE
 // ======================================================
 
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
 
-  const localValue = getStorage("local")?.getItem(USER_KEY);
-  const sessionValue = getStorage("session")?.getItem(USER_KEY);
-
-  const raw = localValue ?? sessionValue;
+  const raw = getStoredValue(USER_KEY);
 
   if (!raw) return null;
 
@@ -140,6 +157,15 @@ export function setStoredUser(user: StoredUser, rememberMe: boolean): void {
 
 export function removeStoredUser(): void {
   removeStoredValue(USER_KEY);
+}
+
+// ======================================================
+// SESSION MANAGEMENT
+// ======================================================
+
+export function clearStoredSession(): void {
+  removeAccessToken();
+  removeStoredUser();
 }
 
 // ======================================================
@@ -172,15 +198,15 @@ export async function apiRequest<T = unknown>(
     }
   }
 
-  // Authorization
-  const token = getAccessToken();
   const requestHeaders = new Headers(headers);
+  const token = getAccessToken();
 
   if (token && !requestHeaders.has("Authorization")) {
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  // Content-Type
+  requestHeaders.set("X-Client-Platform", "web");
+
   const isFormData =
     typeof FormData !== "undefined" && customOptions.body instanceof FormData;
 
@@ -188,22 +214,26 @@ export async function apiRequest<T = unknown>(
     requestHeaders.set("Content-Type", "application/json");
   }
 
+  const isLoginEndpoint = /\/auth\/login\/?$/.test(endpoint.split("?")[0]);
+
   try {
     const response = await fetch(url, {
       ...customOptions,
       headers: requestHeaders,
     });
 
-    // Handle expired session
-    if (response.status === 401) {
-      removeAccessToken();
-      removeStoredUser();
+    // ==================================================
+    // HANDLE UNAUTHORIZED
+    // ==================================================
+
+    if (response.status === 401 && !isLoginEndpoint) {
+      clearStoredSession();
 
       if (
         typeof window !== "undefined" &&
-        !window.location.pathname.includes("/login")
+        window.location.pathname !== "/login"
       ) {
-        window.location.href = "/login?session_expired=true";
+        window.location.replace("/login?session_expired=true");
       }
 
       throw new ApiError(
@@ -211,6 +241,10 @@ export async function apiRequest<T = unknown>(
         "Sesi login telah kedaluwarsa. Silakan login kembali.",
       );
     }
+
+    // ==================================================
+    // PARSE RESPONSE
+    // ==================================================
 
     const data: unknown = await response.json().catch(() => null);
 

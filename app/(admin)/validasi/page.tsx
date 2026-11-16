@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 
 import { BaseModal, ExportModal, useToast } from "@/components/ui";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 import { validasiService } from "@/services/validasiService";
 
@@ -25,7 +26,6 @@ import type { StatusFilter } from "@/types/validasi.types";
 
 import {
   exportColumns,
-  getErrorMessage,
   matchesSearch,
   PAGE_LIMIT,
 } from "@/utils/validasi.utils";
@@ -33,28 +33,22 @@ import {
 export default function ValidasiPage() {
   const { showToast } = useToast();
 
-  // --------------------------------------------------
+  const { hasRole, loading: authLoading } = useAuth();
+
+  // ACCESS CONTROL
+  const canManageValidation = !authLoading && hasRole("admin_pusat");
+
   // PAGE STATE
-  // --------------------------------------------------
-
   const [processing, setProcessing] = useState(false);
-
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Semua");
-
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  // --------------------------------------------------
   // DATA HOOK
-  // --------------------------------------------------
-
   const { data, pagination, loading, refreshing, pageError, loadData } =
     useValidasiData(statusFilter, page);
 
-  // --------------------------------------------------
   // DETAIL HOOK
-  // --------------------------------------------------
-
   const {
     reviewId,
     reviewItem,
@@ -65,10 +59,7 @@ export default function ValidasiPage() {
     resetDetail,
   } = useValidasiDetail(processing);
 
-  // --------------------------------------------------
   // EXPORT HOOK
-  // --------------------------------------------------
-
   const {
     showExport,
     setShowExport,
@@ -83,20 +74,19 @@ export default function ValidasiPage() {
     showToast,
   });
 
-  // --------------------------------------------------
   // SEARCH
-  // --------------------------------------------------
-
   const filtered = useMemo(() => {
     return data.filter((item) => matchesSearch(item, search));
   }, [data, search]);
 
-  // --------------------------------------------------
-  // APPROVE
-  // --------------------------------------------------
+  const handleSearchChange = (value: string): void => {
+    setSearch(value);
+    setPage(1);
+  };
 
+  // APPROVE
   const handleApprove = async (): Promise<void> => {
-    if (!reviewItem) {
+    if (!canManageValidation || !reviewItem) {
       return;
     }
 
@@ -118,12 +108,9 @@ export default function ValidasiPage() {
     }
   };
 
-  // --------------------------------------------------
   // REJECT
-  // --------------------------------------------------
-
   const handleReject = async (catatan: string): Promise<void> => {
-    if (!reviewItem) {
+    if (!canManageValidation || !reviewItem) {
       return;
     }
 
@@ -147,80 +134,65 @@ export default function ValidasiPage() {
     }
   };
 
-  // --------------------------------------------------
   // FILTER STATUS
-  // --------------------------------------------------
-
   const handleStatusChange = (status: StatusFilter): void => {
     setStatusFilter(status);
     setPage(1);
   };
 
-  // --------------------------------------------------
   // PAGINATION
-  // --------------------------------------------------
-
   const total = pagination?.total ?? 0;
+  const currentPage = pagination?.page ?? page;
+  const totalPages = pagination?.totalPages ?? 0;
 
-  // --------------------------------------------------
   // RENDER
-  // --------------------------------------------------
-
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-
       <ValidasiHeader
         preparingExport={preparingExport}
         refreshing={refreshing}
         loading={loading}
+        canManageValidation={canManageValidation}
+        authLoading={authLoading}
         onExport={() => void prepareExport()}
         onRefresh={() => void loadData(true)}
       />
 
-      {/* STATISTICS */}
-
       <ValidasiStats
         total={total}
-        currentPage={pagination?.page ?? page}
-        totalPages={pagination?.totalPages ?? 0}
+        currentPage={currentPage}
+        totalPages={totalPages}
         displayed={filtered.length}
         pageLimit={PAGE_LIMIT}
       />
-
-      {/* FILTER */}
 
       <ValidasiFilters
         statusFilter={statusFilter}
         search={search}
         onStatusChange={handleStatusChange}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
       />
 
-      {/* PAGE ERROR */}
-
       <ValidasiError message={pageError} onRetry={() => void loadData(true)} />
-
-      {/* TABLE */}
 
       <ValidasiTable
         data={filtered}
         loading={loading}
         pagination={pagination}
-        page={page}
+        page={currentPage}
         total={total}
         pageLimit={PAGE_LIMIT}
+        canManageValidation={canManageValidation}
         onPageChange={setPage}
         onOpenDetail={(id) => void openDetail(id)}
       />
-
-      {/* DETAIL MODAL */}
 
       {reviewId &&
         (reviewItem ? (
           <ValidasiReviewModal
             key={reviewItem.id_penggantian}
             item={reviewItem}
+            canManageValidation={canManageValidation}
             onClose={closeDetail}
             onApprove={handleApprove}
             onReject={handleReject}
@@ -264,8 +236,6 @@ export default function ValidasiPage() {
             </div>
           </BaseModal>
         ))}
-
-      {/* EXPORT MODAL */}
 
       <ExportModal
         isOpen={showExport}

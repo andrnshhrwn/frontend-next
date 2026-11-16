@@ -34,6 +34,7 @@ export interface ValidasiDataResult {
 
 export interface ValidasiReviewModalProps {
   item: ValidasiBap;
+  canManageValidation: boolean;
   onClose: () => void;
   onApprove: () => Promise<void>;
   onReject: (catatan: string) => Promise<void>;

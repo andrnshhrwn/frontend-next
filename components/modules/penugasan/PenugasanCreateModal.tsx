@@ -100,7 +100,7 @@ export default function PenugasanCreateModal({
                   {selected.nama}
                 </p>
 
-                <p className="text-[10px] font-mono text-slate-400">
+                <p className="text-[10px] font-sans text-slate-400">
                   {selected.id_pelanggan_pdam}
                 </p>
 
@@ -141,7 +141,7 @@ export default function PenugasanCreateModal({
                         {item.nama}
                       </span>
 
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-400 font-sans">
                         {item.id_pelanggan_pdam}
                       </span>
                     </button>

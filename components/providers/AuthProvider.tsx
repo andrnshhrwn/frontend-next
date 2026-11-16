@@ -1,24 +1,47 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import { usePathname, useRouter } from "next/navigation";
+
 import {
   authService,
   type UserProfile,
   type UserRole,
 } from "@/services/authService";
 
+import { ApiError } from "@/services/apiClient";
+
+// ======================================================
+// TYPES
+// ======================================================
+
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
+  verificationError: boolean;
   isAuthenticated: boolean;
   hasRole: (...roles: UserRole[]) => boolean;
   userUnitId: string | null;
   isGlobalScope: boolean;
+  setSession: (user: UserProfile) => void;
+  retry: () => void;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+// ======================================================
+// HOOK
+// ======================================================
 
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
@@ -30,93 +53,167 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
+// ======================================================
+// AUTH PROVIDER
+// ======================================================
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verificationError, setVerificationError] = useState(false);
+
+  const routerRef = useRef(router);
+  const pathnameRef = useRef(pathname);
 
   useEffect(() => {
-    let active = true;
+    routerRef.current = router;
+    pathnameRef.current = pathname;
+  }, [router, pathname]);
 
-    async function restoreSession() {
-      const token = authService.getToken();
+  // ====================================================
+  // RESTORE SESSION
+  // ====================================================
 
-      if (!token) {
-        authService.clearSession();
+  const restoreSession = useCallback(async () => {
+    setLoading(true);
+    setVerificationError(false);
 
-        if (active) {
-          setUser(null);
-          setLoading(false);
-          router.replace("/login");
-        }
+    const isLoginPage = pathnameRef.current === "/login";
 
-        return;
-      }
+    const isExpiredLogin =
+      isLoginPage &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("session_expired") ===
+        "true";
 
-      try {
-        const currentUser = await authService.getMe(token);
-
-        if (active) {
-          localStorage.setItem("pdam_user", JSON.stringify(currentUser));
-          setUser(currentUser);
-        }
-      } catch {
-        if (active) {
-          authService.clearSession();
-          setUser(null);
-          router.replace("/login?session_expired=true");
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+    // Halaman login dengan sesi kedaluwarsa.
+    if (isExpiredLogin) {
+      authService.clearSession();
+      setUser(null);
+      setLoading(false);
+      return;
     }
 
+    const token = authService.getToken();
+
+    // Tidak ada token.
+    if (!token) {
+      authService.clearSession();
+      setUser(null);
+      setLoading(false);
+
+      if (!isLoginPage) {
+        routerRef.current.replace("/login");
+      }
+
+      return;
+    }
+
+    try {
+      // Validasi token ke backend.
+      const currentUser = await authService.getMe(token);
+      setUser(currentUser);
+    } catch (error: unknown) {
+      setUser(null);
+
+      if (error instanceof ApiError && error.status === 401) {
+        // apiClient sudah menangani redirect.
+        authService.clearSession();
+      } else {
+        // Gangguan jaringan atau server.
+        setVerificationError(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ====================================================
+  // INITIAL SESSION CHECK
+  // ====================================================
+
+  useEffect(() => {
     void restoreSession();
+  }, [restoreSession]);
 
-    return () => {
-      active = false;
-    };
-  }, [router]);
+  // ====================================================
+  // SET SESSION AFTER LOGIN
+  // ====================================================
 
-  const hasRole = (...roles: UserRole[]): boolean =>
-    user !== null && roles.includes(user.role);
+  const setSession = useCallback((nextUser: UserProfile) => {
+    setUser(nextUser);
+    setVerificationError(false);
+    setLoading(false);
+  }, []);
 
-  // UUID menggunakan string, bukan number.
+  // ====================================================
+  // RETRY
+  // ====================================================
+
+  const retry = useCallback(() => {
+    void restoreSession();
+  }, [restoreSession]);
+
+  // ====================================================
+  // ROLE MANAGEMENT
+  // ====================================================
+
+  const hasRole = useCallback(
+    (...roles: UserRole[]): boolean => {
+      return user !== null && roles.includes(user.role);
+    },
+    [user],
+  );
+
   const userUnitId: string | null = user?.id_unit ?? null;
-
   const isGlobalScope = user?.role === "admin_pusat";
 
-  const logout = async (): Promise<void> => {
+  // ====================================================
+  // LOGOUT
+  // ====================================================
+
+  const logout = useCallback(async (): Promise<void> => {
     await authService.logout();
+
     setUser(null);
-    router.replace("/login");
-  };
+    setVerificationError(false);
 
-  const value: AuthContextValue = {
-    user,
-    loading,
-    isAuthenticated: user !== null,
-    hasRole,
-    userUnitId,
-    isGlobalScope,
-    logout,
-  };
+    routerRef.current.replace("/login");
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-pdam-bg">
-        <div className="flex flex-col items-center gap-3">
-          <span className="loading loading-spinner loading-lg text-pdam-primary" />
-          <p className="text-sm font-medium text-pdam-navy">
-            Memverifikasi sesi...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // ====================================================
+  // CONTEXT VALUE
+  // ====================================================
 
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      verificationError,
+      isAuthenticated: user !== null,
+      hasRole,
+      userUnitId,
+      isGlobalScope,
+      setSession,
+      retry,
+      logout,
+    }),
+    [
+      user,
+      loading,
+      verificationError,
+      hasRole,
+      userUnitId,
+      isGlobalScope,
+      setSession,
+      retry,
+      logout,
+    ],
+  );
+
+  // Selalu render children. Akses dijaga oleh proxy.ts.
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

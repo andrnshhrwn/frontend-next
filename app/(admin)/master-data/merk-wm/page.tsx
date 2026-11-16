@@ -1,9 +1,11 @@
 "use client";
 
-import { AlertCircle, Download, Gauge, LoaderCircle, Plus } from "lucide-react";
+import { AlertCircle, Download, Gauge, Plus } from "lucide-react";
 
 import { PageHeader, StatCard } from "@/components/ui";
+
 import { useMerkWM } from "@/hooks/modules/merk-wm/useMerkWM";
+
 import MerkWMTable from "@/components/modules/merk-wm/MerkWMTable";
 import MerkWMFormModal from "@/components/modules/merk-wm/MerkWMFormModal";
 import MerkWMDeleteModal from "@/components/modules/merk-wm/MerkWMDeleteModal";
@@ -16,15 +18,15 @@ export default function DataMerkWMPage() {
     <div className="space-y-6">
       <PageHeader
         title="Manajemen Merk Water Meter"
-        subtitle="Kelola master data kode merk dan jumlah digit meteran air untuk standar pembacaan meter di PAM Tirta Kamuning."
-        badge="Master Data PAM Tirta Kamuning"
+        subtitle="Kelola data merk water meter PAM Tirta Kamuning."
+        badge=""
         badgeVariant="primary"
       >
         <button
           type="button"
           onClick={() => merkWM.setExportModalOpen(true)}
           disabled={merkWM.data.length === 0}
-          className="btn btn-sm btn-outline border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+          className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs"
         >
           <Download className="h-3.5 w-3.5" />
           Ekspor CSV
@@ -33,7 +35,7 @@ export default function DataMerkWMPage() {
         <button
           type="button"
           onClick={merkWM.openAdd}
-          className="btn btn-sm border-none bg-pdam-primary text-white shadow-xs hover:bg-pdam-primary/90"
+          className="btn btn-sm border-none bg-pdam-primary text-white shadow-xs hover:bg-pdam-navy"
         >
           <Plus className="h-3.5 w-3.5" />
           Tambah Merk
@@ -80,9 +82,12 @@ export default function DataMerkWMPage() {
         filteredLength={merkWM.filtered.length}
         safePage={merkWM.safePage}
         totalPages={merkWM.totalPages}
+        itemsPerPage={merkWM.itemsPerPage}
+        startIndex={merkWM.startIndex}
+        endIndex={merkWM.endIndex}
         onSearchChange={merkWM.changeSearch}
         onClearSearch={merkWM.clearSearch}
-        onPageChange={merkWM.setCurrentPage}
+        onPageChange={merkWM.handlePageChange}
         onEdit={merkWM.openEdit}
         onDelete={merkWM.setDeletingMerk}
       />

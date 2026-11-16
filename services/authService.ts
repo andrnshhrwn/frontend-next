@@ -40,7 +40,6 @@ export interface LoginResult {
 export const authService = {
   /**
    * Login menggunakan username dan password.
-   * Penyimpanan sesi mengikuti pilihan Remember Me.
    */
   async login(
     username: string,
@@ -68,7 +67,7 @@ export const authService = {
   },
 
   /**
-   * Mengambil profil pengguna yang sedang login.
+   * Mengambil profil pengguna dari backend.
    */
   async getMe(token?: string): Promise<UserProfile> {
     const response = await apiRequest<ApiResponse<UserProfile>>("/auth/me", {
@@ -84,24 +83,38 @@ export const authService = {
   },
 
   /**
-   * Mengambil access token dari storage.
+   * Mengambil access token.
    */
   getToken(): string | null {
     return getAccessToken();
   },
 
   /**
-   * Mengambil profil pengguna dari storage.
+   * Mengambil profil pengguna lokal.
    */
   getCurrentUser(): UserProfile | null {
     return getStoredUser();
   },
 
   /**
-   * Memeriksa keberadaan token dan profil pengguna.
+   * Memeriksa keberadaan sesi lokal.
+   * Bukan validasi token ke server.
    */
-  isAuthenticated(): boolean {
+  hasSession(): boolean {
     return Boolean(this.getToken() && this.getCurrentUser());
+  },
+
+  /**
+   * Memvalidasi token melalui backend.
+   */
+  async validateSession(): Promise<UserProfile> {
+    const token = this.getToken();
+
+    if (!token) {
+      throw new Error("Access token tidak ditemukan.");
+    }
+
+    return this.getMe(token);
   },
 
   /**

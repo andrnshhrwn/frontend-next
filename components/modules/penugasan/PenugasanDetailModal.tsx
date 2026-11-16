@@ -111,7 +111,7 @@ export default function PenugasanDetailModal({
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <p className="font-mono font-bold text-lg text-pdam-primary">
+          <p className="font-sans font-bold text-lg text-pdam-primary">
             {ticket.nomorSpk}
           </p>
 
@@ -130,7 +130,7 @@ export default function PenugasanDetailModal({
 
         <DetailRow
           k="ID Pelanggan"
-          v={<span className="font-mono">{ticket.idPelanggan}</span>}
+          v={<span className="font-sans">{ticket.idPelanggan}</span>}
         />
 
         <DetailRow k="Unit" v={ticket.cabang} />

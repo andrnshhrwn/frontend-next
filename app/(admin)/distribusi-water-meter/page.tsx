@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Plus, Truck } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 
 import {
   PageHeader,
@@ -17,6 +17,8 @@ import {
   PengirimanWmStats,
   StokUnitTab,
 } from "@/components/modules/distribusi-water-meter";
+
+import { useAuth } from "@/components/providers/AuthProvider";
 
 import { usePengirimanWmData } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmData";
 import { usePengirimanWmStats } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmStats";
@@ -34,6 +36,10 @@ type ActiveTab = "stok" | "pengiriman";
 export default function DistribusiWaterMeterPage() {
   const { showToast } = useToast();
 
+  const { hasRole, loading: authLoading } = useAuth();
+
+  const canManage = !authLoading && hasRole("admin_cabang");
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("stok");
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -46,25 +52,28 @@ export default function DistribusiWaterMeterPage() {
   const [deletingPengiriman, setDeletingPengiriman] =
     useState<PengirimanWm | null>(null);
 
-  // Data dari backend
+  // ======================================================
+  // DATA
+  // ======================================================
+
   const {
     pengirimanList,
     unitList,
     merkList,
-    pelangganList,
+    stokWmList,
+    stokSummary,
     isLoading,
     errorMessage: dataErrorMessage,
     fetchData,
   } = usePengirimanWmData();
 
-  // Perhitungan stok dan statistik
-  const stats = usePengirimanWmStats(pengirimanList, pelangganList);
+  const stats = usePengirimanWmStats(pengirimanList, stokWmList, stokSummary);
 
   // Pencarian, filter, dan pagination
   const filter = usePengirimanWmFilter(pengirimanList, unitList);
 
   // Form tambah dan edit
-  const form = usePengirimanWmForm(unitList, merkList);
+  const form = usePengirimanWmForm(merkList);
 
   // Aksi create, update, delete, dan export
   const actions = usePengirimanWmActions({
@@ -77,6 +86,8 @@ export default function DistribusiWaterMeterPage() {
   // ======================================================
 
   const handleOpenAddModal = () => {
+    if (!canManage) return;
+
     actions.clearError();
     form.openAddModal();
   };
@@ -89,6 +100,8 @@ export default function DistribusiWaterMeterPage() {
   };
 
   const handleOpenEditModal = (item: PengirimanWm) => {
+    if (!canManage) return;
+
     actions.clearError();
     form.openEditModal(item);
 
@@ -107,6 +120,8 @@ export default function DistribusiWaterMeterPage() {
   };
 
   const handleOpenDeleteModal = (item: PengirimanWm) => {
+    if (!canManage) return;
+
     setDeletingPengiriman(item);
     setDeleteModalOpen(true);
   };
@@ -117,7 +132,7 @@ export default function DistribusiWaterMeterPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deletingPengiriman) return;
+    if (!canManage || !deletingPengiriman) return;
 
     const success = await actions.deletePengiriman(
       deletingPengiriman.id_pengiriman,
@@ -133,11 +148,15 @@ export default function DistribusiWaterMeterPage() {
   // ======================================================
 
   const handleSubmitPengiriman = (event: React.FormEvent<HTMLFormElement>) => {
+    if (!canManage) {
+      event.preventDefault();
+      return;
+    }
+
     void actions.submitPengiriman(event, {
       editingPengiriman: form.editingPengiriman,
       noPengiriman: form.formNoPengiriman,
       tglPengiriman: form.formTglPengiriman,
-      unitTujuan: form.formUnitTujuan,
       catatan: form.formCatatan,
       details: form.formDetails,
     });
@@ -165,29 +184,31 @@ export default function DistribusiWaterMeterPage() {
     <div className="space-y-6">
       <PageHeader
         title="Monitoring & Pengiriman Water Meter"
-        subtitle="Pencatatan pengiriman Water Meter dari Pusat ke Cabang dan monitoring ketersediaan stok unit."
-        badge="PAM Tirta Kamuning - Pusat"
+        subtitle="Monitoring ketersediaan stok dan pencatatan pengiriman Water Meter."
+        badge=""
         badgeVariant="primary"
       >
         <button
           type="button"
           onClick={() => setExportModalOpen(true)}
           disabled={pengirimanList.length === 0}
-          className="btn btn-sm rounded-md border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="btn btn-sm btn-ghost bg-white hover:bg-pdam-bg border border-slate-200 text-pdam-navy font-semibold normal-case shadow-xs"
         >
-          <Download className="h-3.5 w-3.5" />
-          Ekspor CSV
+          <Download className="h-4 w-4 text-primary" />
+          Export Data
         </button>
 
-        <button
-          type="button"
-          onClick={handleOpenAddModal}
-          disabled={unitList.length === 0 || merkList.length === 0}
-          className="btn btn-sm rounded-md border-none bg-pdam-primary text-white hover:bg-pdam-primary/90 disabled:opacity-50"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Catat Pengiriman WM
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            onClick={handleOpenAddModal}
+            disabled={merkList.length === 0}
+            className="btn btn-sm rounded-md border-none bg-pdam-primary text-white hover:bg-pdam-navy disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Catat Pengiriman WM
+          </button>
+        )}
       </PageHeader>
 
       {dataErrorMessage && !form.formModalOpen && (
@@ -270,6 +291,7 @@ export default function DistribusiWaterMeterPage() {
           totalItems={filter.totalItems}
           startIndex={filter.startIndex}
           endIndex={filter.endIndex}
+          canManage={canManage}
           onSearchChange={filter.setSearch}
           onCabangFilterChange={filter.setCabangFilter}
           onPageChange={filter.setCurrentPage}
@@ -279,48 +301,50 @@ export default function DistribusiWaterMeterPage() {
         />
       )}
 
-      {/* Modal tambah / edit */}
-      <PengirimanFormModal
-        isOpen={form.formModalOpen}
-        isSaving={actions.isSaving}
-        isEditing={Boolean(form.editingPengiriman)}
-        noPengiriman={form.formNoPengiriman}
-        tglPengiriman={form.formTglPengiriman}
-        unitTujuan={form.formUnitTujuan}
-        catatan={form.formCatatan}
-        details={form.formDetails}
-        unitList={unitList}
-        merkList={merkList}
-        errorMessage={actions.errorMessage}
-        onClose={handleCloseFormModal}
-        onSubmit={handleSubmitPengiriman}
-        onNoPengirimanChange={form.setFormNoPengiriman}
-        onTglPengirimanChange={form.setFormTglPengiriman}
-        onUnitTujuanChange={form.setFormUnitTujuan}
-        onCatatanChange={form.setFormCatatan}
-        onAddDetail={form.addDetailRow}
-        onDetailChange={form.changeDetail}
-        onRemoveDetail={form.removeDetailRow}
-      />
+      {/* Modal tambah / edit: khusus Admin Cabang */}
+      {canManage && (
+        <PengirimanFormModal
+          isOpen={form.formModalOpen}
+          isSaving={actions.isSaving}
+          isEditing={Boolean(form.editingPengiriman)}
+          noPengiriman={form.formNoPengiriman}
+          tglPengiriman={form.formTglPengiriman}
+          catatan={form.formCatatan}
+          details={form.formDetails}
+          merkList={merkList}
+          errorMessage={actions.errorMessage}
+          onClose={handleCloseFormModal}
+          onSubmit={handleSubmitPengiriman}
+          onNoPengirimanChange={form.setFormNoPengiriman}
+          onTglPengirimanChange={form.setFormTglPengiriman}
+          onCatatanChange={form.setFormCatatan}
+          onAddDetail={form.addDetailRow}
+          onDetailChange={form.changeDetail}
+          onRemoveDetail={form.removeDetailRow}
+        />
+      )}
 
       {/* Modal detail */}
       <PengirimanDetailModal
         isOpen={detailModalOpen}
         pengiriman={selectedPengiriman}
+        canManage={canManage}
         onClose={handleCloseDetailModal}
         onEdit={handleOpenEditModal}
       />
 
-      {/* Konfirmasi hapus */}
-      <DeleteConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        onConfirm={() => void handleConfirmDelete()}
-        title="Hapus Catatan Pengiriman"
-        itemName={deletingPengiriman?.no_pengiriman ?? ""}
-        itemType="catatan pengiriman WM"
-        warningText="Penghapusan catatan pengiriman akan mengurangi total pengiriman yang tercatat pada unit tujuan. Pastikan data ini memang perlu dihapus."
-      />
+      {/* Konfirmasi hapus: khusus Admin Cabang */}
+      {canManage && (
+        <DeleteConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={() => void handleConfirmDelete()}
+          title="Hapus Catatan Pengiriman"
+          itemName={deletingPengiriman?.no_pengiriman ?? ""}
+          itemType="catatan pengiriman WM"
+          warningText="Penghapusan catatan pengiriman akan mengurangi total pengiriman yang tercatat pada unit tujuan. Pastikan data ini memang perlu dihapus."
+        />
+      )}
 
       {/* Modal ekspor */}
       <ExportModal

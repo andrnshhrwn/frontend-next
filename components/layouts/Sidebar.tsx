@@ -19,7 +19,7 @@ export default function Sidebar({
   closeMobileSidebar,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { hasRole, user } = useAuth();
+  const { hasRole, user, loading } = useAuth();
 
   return (
     <aside
@@ -35,12 +35,23 @@ export default function Sidebar({
 
         <SidebarUserRole user={user} isCollapsed={isCollapsed} />
 
-        <SidebarNavigation
-          pathname={pathname}
-          isCollapsed={isCollapsed}
-          hasRole={hasRole}
-          closeMobileSidebar={closeMobileSidebar}
-        />
+        {loading ? (
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-9 animate-pulse rounded-lg bg-slate-200/70"
+              />
+            ))}
+          </div>
+        ) : (
+          <SidebarNavigation
+            pathname={pathname}
+            isCollapsed={isCollapsed}
+            hasRole={hasRole}
+            closeMobileSidebar={closeMobileSidebar}
+          />
+        )}
       </div>
 
       {isCollapsed && (

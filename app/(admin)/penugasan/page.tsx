@@ -1,11 +1,10 @@
 "use client";
 
 import { AlertCircle, X } from "lucide-react";
-
 import { useState } from "react";
 
-import { getStoredUser } from "@/services/apiClient";
-
+import { useAuth } from "@/components/providers/AuthProvider";
+import PageSkeleton from "@/components/layouts/PageSkeleton";
 import { useToast } from "@/components/ui";
 
 import {
@@ -23,11 +22,8 @@ import {
 } from "@/components/modules/penugasan";
 
 import { usePenugasanData } from "@/hooks/modules/penugasan/usePenugasanData";
-
 import { usePenugasanFilter } from "@/hooks/modules/penugasan/usePenugasanFilter";
-
 import { usePenugasanActions } from "@/hooks/modules/penugasan/usePenugasanActions";
-
 import { usePenugasanModals } from "@/hooks/modules/penugasan/usePenugasanModals";
 
 import { ITEMS_PER_PAGE } from "@/utils/penugasan.utils";
@@ -35,14 +31,14 @@ import { ITEMS_PER_PAGE } from "@/utils/penugasan.utils";
 export default function PenugasanPusatPage() {
   const { showToast } = useToast();
 
-  const currentUser = getStoredUser();
+  // Sumber user yang konsisten di server dan client.
+  const { user: currentUser, loading: authLoading } = useAuth();
 
   const isAdminPusat = currentUser?.role === "admin_pusat";
   const isAdminCabang = currentUser?.role === "admin_cabang";
 
   // ID unit dari backend berupa UUID string.
   const unitId = currentUser?.id_unit ? String(currentUser.id_unit) : "";
-
   const unitName = currentUser?.nama_unit ?? "Unit";
 
   const access = {
@@ -50,6 +46,8 @@ export default function PenugasanPusatPage() {
     isAdminCabang,
     unitId,
     unitName,
+    // Jangan fetch sebelum sesi siap.
+    enabled: !authLoading && (isAdminPusat || isAdminCabang),
   };
 
   const {
@@ -103,16 +101,12 @@ export default function PenugasanPusatPage() {
   });
 
   const editTicket = tickets.find((item) => item.id === modals.editId) ?? null;
-
   const deleteTicket =
     tickets.find((item) => item.id === modals.deleteId) ?? null;
-
   const assignTicket =
     tickets.find((item) => item.id === modals.assignId) ?? null;
-
   const detailTicket =
     tickets.find((item) => item.id === modals.detailId) ?? null;
-
   const cancelTicket =
     tickets.find((item) => item.id === modals.cancelId) ?? null;
 
@@ -127,8 +121,12 @@ export default function PenugasanPusatPage() {
   };
 
   /* ---------------------------------------------------------------- */
-  /* Access control                                                     */
+  /* Access control (setelah semua hook)                                */
   /* ---------------------------------------------------------------- */
+
+  if (authLoading) {
+    return <PageSkeleton />;
+  }
 
   if (!isAdminPusat && !isAdminCabang) {
     return (
@@ -255,10 +253,7 @@ export default function PenugasanPusatPage() {
             await loadTeknisi();
           }}
           onRequestCancel={() => {
-            // Tutup modal detail terlebih dahulu.
             modals.setDetailId(null);
-
-            // Buka modal konfirmasi pembatalan.
             modals.setCancelId(detailTicket.id);
           }}
           isAdminCabang={isAdminCabang}

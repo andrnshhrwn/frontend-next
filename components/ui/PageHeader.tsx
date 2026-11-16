@@ -26,17 +26,17 @@ export function PageHeader({
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200">
       <div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-xl md:text-2xl font-bold text-pdam-navy tracking-tight">{title}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-xl md:text-xl font-bold text-pdam-navy tracking-tight">{title}</h1>
           {badge && (
             <span
-              className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badgeClasses}`}
+              className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badgeClasses}`}
             >
               {badge}
             </span>
           )}
         </div>
-        {subtitle && <p className="text-xs md:text-sm text-slate-500 mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-xs md:text-md text-slate-500 mt-1">{subtitle}</p>}
       </div>
       {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>

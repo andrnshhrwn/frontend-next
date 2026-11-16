@@ -16,14 +16,6 @@ export default function DashboardSummaryCards({
 }: DashboardSummaryCardsProps) {
   return (
     <section>
-      <div className="mb-3">
-        <h3 className="text-sm font-bold text-pdam-navy">Ringkasan Utama</h3>
-
-        <p className="mt-0.5 text-xs text-slate-500">
-          Gambaran aktivitas berdasarkan periode dan unit terpilih.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Pelanggan"

@@ -1,10 +1,14 @@
+"use client";
+
 import { ArrowUpRight, Calendar, MapPin, Pencil, Trash2 } from "lucide-react";
 
 import { Pagination, SearchInput, SelectDropdown } from "@/components/ui";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 import type { PengirimanWmHistoryTabProps } from "@/types/pengirimanWm.types";
 
 import { aggregateDetails, formatNumber } from "@/utils/pengirimanWm.utils";
+import { formatTanggal } from "@/lib/formatDate";
 
 export default function PengirimanHistoryTab({
   data,
@@ -16,6 +20,7 @@ export default function PengirimanHistoryTab({
   totalItems,
   startIndex,
   endIndex,
+  canManage,
   onSearchChange,
   onCabangFilterChange,
   onPageChange,
@@ -23,6 +28,10 @@ export default function PengirimanHistoryTab({
   onEdit,
   onDelete,
 }: PengirimanWmHistoryTabProps) {
+  const { hasRole, loading: authLoading } = useAuth();
+
+  const isAdminPusat = !authLoading && hasRole("admin_pusat");
+
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="flex flex-col items-center justify-between gap-3 border-b border-slate-100 p-4 sm:flex-row">
@@ -33,13 +42,15 @@ export default function PengirimanHistoryTab({
           className="w-full sm:max-w-md"
         />
 
-        <SelectDropdown
-          value={cabangFilter}
-          onChange={onCabangFilterChange}
-          options={unitFilterOptions}
-          icon={<MapPin className="h-3.5 w-3.5" />}
-          className="w-full sm:w-56"
-        />
+        {isAdminPusat && (
+          <SelectDropdown
+            value={cabangFilter}
+            onChange={onCabangFilterChange}
+            options={unitFilterOptions}
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            className="w-full sm:w-56"
+          />
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -62,12 +73,12 @@ export default function PengirimanHistoryTab({
                 className="transition-colors hover:bg-slate-50/60"
               >
                 <td className="px-4 py-3.5">
-                  <span className="block font-mono font-bold text-pdam-primary">
+                  <span className="block font-sans font-bold text-pdam-primary">
                     {item.no_pengiriman}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
                     <Calendar className="h-3 w-3" />
-                    {item.tgl_pengiriman}
+                    {formatTanggal(item.tgl_pengiriman)}
                   </span>
                 </td>
 
@@ -78,7 +89,7 @@ export default function PengirimanHistoryTab({
                 </td>
 
                 <td className="px-4 py-3.5">
-                  <span className="font-mono text-sm font-bold text-slate-900">
+                  <span className="font-sans text-xs font-bold text-slate-700">
                     {formatNumber(item.total_wm)} Unit
                   </span>
                 </td>
@@ -113,25 +124,29 @@ export default function PengirimanHistoryTab({
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => onEdit(item)}
-                      title="Edit pengiriman"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
+                    {canManage && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEdit(item)}
+                          title="Edit pengiriman"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => onDelete(item)}
-                      title="Hapus pengiriman"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Hapus
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(item)}
+                          title="Hapus pengiriman"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Hapus
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

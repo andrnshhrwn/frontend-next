@@ -54,23 +54,7 @@ export default function PenugasanTable({
       <div className="px-5 py-4 border-b border-slate-200 flex justify-between items-center bg-pdam-bg/60">
         <h3 className="font-bold text-xs uppercase tracking-wider flex items-center gap-2 text-pdam-navy">
           Daftar Surat Perintah Kerja (SPK)
-          <span className="badge border border-pdam-primary/30 bg-pdam-primary/10 text-pdam-primary text-[10px] font-semibold">
-            Data Backend
-          </span>
         </h3>
-
-        <div className="text-xs text-slate-500 flex items-center gap-2">
-          <span>
-            Menampilkan {filteredCount} dari {totalCount} penugasan
-          </span>
-
-          <span>•</span>
-
-          <span className="flex items-center gap-1 text-emerald-600 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
-            Data dimuat
-          </span>
-        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -101,11 +85,11 @@ export default function PenugasanTable({
                   className="hover:bg-pdam-bg/60 transition-colors"
                 >
                   <td className="py-3.5 pl-5 font-bold">
-                    <span className="text-pdam-primary font-mono block">
+                    <span className="text-pdam-primary font-sans block">
                       {item.nomorSpk}
                     </span>
 
-                    <span className="text-[10px] text-slate-400 font-normal">
+                    <span className="text-xs text-slate-700 font-normal">
                       {item.tanggal}
                     </span>
                   </td>
@@ -121,11 +105,11 @@ export default function PenugasanTable({
                       {item.pelanggan}
                     </span>
 
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-xs text-slate-500">
                       {item.alamat}
                     </span>
 
-                    <span className="text-[10px] text-slate-400 block font-mono">
+                    <span className="text-xs text-slate-700 font-bold block font-sans">
                       {item.idPelanggan}
                     </span>
                   </td>
@@ -145,6 +129,7 @@ export default function PenugasanTable({
                         isAdminCabang,
                       ) ? (
                       <button
+                        type="button"
                         onClick={() => onAssign(item)}
                         className="btn btn-xs btn-outline border-pdam-primary text-pdam-primary hover:bg-pdam-primary hover:text-white font-semibold normal-case"
                       >
@@ -167,6 +152,7 @@ export default function PenugasanTable({
                     <div className="flex items-center justify-end gap-2">
                       {canEditPenugasan(item.status, isAdminCabang) && (
                         <button
+                          type="button"
                           onClick={() => onEdit(item.id)}
                           className="text-xs font-semibold text-pdam-primary hover:text-pdam-navy hover:underline"
                         >
@@ -176,6 +162,7 @@ export default function PenugasanTable({
 
                       {canDeletePenugasan(item.status, isAdminCabang) && (
                         <button
+                          type="button"
                           onClick={() => onDelete(item.id)}
                           className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline"
                         >
@@ -184,6 +171,7 @@ export default function PenugasanTable({
                       )}
 
                       <button
+                        type="button"
                         onClick={() => onDetail(item.id)}
                         className="text-pdam-primary hover:text-pdam-navy font-semibold hover:underline flex items-center gap-0.5"
                       >
@@ -207,7 +195,7 @@ export default function PenugasanTable({
         </table>
       </div>
 
-      {!loading && (
+      {!loading && filteredCount > 0 && (
         <div className="p-4 border-t border-slate-200">
           <Pagination
             currentPage={currentPage}

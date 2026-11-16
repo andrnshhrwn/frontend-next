@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 import type { PengirimanWm } from "@/services/pengirimanService";
 import type { Unit } from "@/services/unitService";
 
@@ -11,14 +13,47 @@ export function usePengirimanWmFilter(
   pengirimanList: PengirimanWm[],
   unitList: Unit[],
 ) {
+  const { hasRole, userUnitId, loading: authLoading } = useAuth();
+
+  const isAdminPusat = !authLoading && hasRole("admin_pusat");
+  const isAdminCabang = !authLoading && hasRole("admin_cabang");
+
   const [search, setSearch] = useState("");
   const [cabangFilter, setCabangFilter] = useState("Semua");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Batasi daftar unit berdasarkan hak akses pengguna.
+  const accessibleUnitList = useMemo(() => {
+    if (authLoading) return [];
+
+    if (isAdminPusat) return unitList;
+
+    if (isAdminCabang && userUnitId) {
+      return unitList.filter((unit) => unit.id_unit === userUnitId);
+    }
+
+    return [];
+  }, [authLoading, isAdminPusat, isAdminCabang, userUnitId, unitList]);
+
+  // Batasi riwayat pengiriman berdasarkan unit yang boleh diakses.
+  const accessiblePengirimanList = useMemo(() => {
+    if (authLoading) return [];
+
+    if (isAdminPusat) return pengirimanList;
+
+    if (isAdminCabang && userUnitId) {
+      return pengirimanList.filter(
+        (item) => item.id_unit_tujuan === userUnitId,
+      );
+    }
+
+    return [];
+  }, [authLoading, isAdminPusat, isAdminCabang, userUnitId, pengirimanList]);
+
   const filteredPengiriman = useMemo(() => {
     const keyword = search.toLowerCase();
 
-    return pengirimanList.filter((item) => {
+    return accessiblePengirimanList.filter((item) => {
       const namaUnit = item.unit_tujuan?.nama_unit ?? "";
       const catatan = item.catatan ?? "";
 
@@ -31,12 +66,12 @@ export function usePengirimanWmFilter(
 
       return matchSearch && matchCabang;
     });
-  }, [pengirimanList, search, cabangFilter]);
+  }, [accessiblePengirimanList, search, cabangFilter]);
 
   const filteredUnit = useMemo(() => {
     const keyword = search.toLowerCase();
 
-    return unitList.filter((unit) => {
+    return accessibleUnitList.filter((unit) => {
       const matchSearch = unit.nama_unit.toLowerCase().includes(keyword);
 
       const matchCabang =
@@ -44,7 +79,7 @@ export function usePengirimanWmFilter(
 
       return matchSearch && matchCabang;
     });
-  }, [unitList, search, cabangFilter]);
+  }, [accessibleUnitList, search, cabangFilter]);
 
   const totalPages = Math.ceil(filteredPengiriman.length / ITEMS_PER_PAGE);
 
@@ -65,9 +100,9 @@ export function usePengirimanWmFilter(
   const unitFilterOptions = useMemo(() => {
     return [
       "Semua",
-      ...Array.from(new Set(unitList.map((unit) => unit.nama_unit))),
+      ...Array.from(new Set(accessibleUnitList.map((unit) => unit.nama_unit))),
     ];
-  }, [unitList]);
+  }, [accessibleUnitList]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -78,6 +113,11 @@ export function usePengirimanWmFilter(
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  // Jika akun berganti unit atau role, reset filter cabang.
+  useEffect(() => {
+    setCabangFilter("Semua");
+  }, [userUnitId, isAdminPusat, isAdminCabang]);
 
   return {
     search,

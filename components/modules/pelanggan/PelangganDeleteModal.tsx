@@ -17,7 +17,7 @@ export function PelangganDeleteModal({
   return (
     <BaseModal
       isOpen
-      onClose={() => {
+      onClose={() => {  
         if (!deleting) onClose();
       }}
       title="Hapus Data Pelanggan"
@@ -42,7 +42,7 @@ export function PelangganDeleteModal({
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs font-bold text-pdam-navy">{customer.nama}</p>
 
-            <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+            <p className="text-[11px] font-sans text-slate-400 mt-0.5">
               {customer.idPelangganPdam}
             </p>
 

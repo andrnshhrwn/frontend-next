@@ -1,14 +1,18 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 
 import type { StatusFilter, TicketView } from "@/types/penugasan.types";
 
 import {
   filterPenugasan,
-  getPaginatedPenugasan,
   getPenugasanStats,
   getPenugasanUnits,
   getStatusFilterOptions,
+  ITEMS_PER_PAGE,
 } from "@/utils/penugasan.utils";
+
+import { paginate } from "@/utils/pagination.utils";
 
 export function usePenugasanFilter(tickets: TicketView[]) {
   const [search, setSearch] = useState("");
@@ -17,6 +21,7 @@ export function usePenugasanFilter(tickets: TicketView[]) {
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Filter data penugasan.
   const filtered = useMemo(
     () => filterPenugasan(tickets, search, cabangFilter, statusFilter),
     [tickets, search, cabangFilter, statusFilter],
@@ -27,18 +32,37 @@ export function usePenugasanFilter(tickets: TicketView[]) {
     setCurrentPage(1);
   }, [search, cabangFilter, statusFilter]);
 
+  // Pagination menggunakan utility bersama.
   const pagination = useMemo(
-    () => getPaginatedPenugasan(filtered, currentPage),
+    () => paginate(filtered, currentPage, ITEMS_PER_PAGE),
     [filtered, currentPage],
   );
 
+  const {
+    paginatedData: paginatedTickets,
+    totalPages,
+    safeCurrentPage,
+    startIndex,
+    endIndex,
+  } = pagination;
+
+  // Menyesuaikan halaman aktif jika jumlah data berkurang.
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
+
+  // Statistik.
   const stats = useMemo(() => getPenugasanStats(tickets), [tickets]);
 
+  // Pilihan filter status.
   const tabs = useMemo(
     () => getStatusFilterOptions(tickets, stats),
     [tickets, stats],
   );
 
+  // Daftar unit untuk filter cabang.
   const units = useMemo(() => getPenugasanUnits(tickets), [tickets]);
 
   const handlePageChange = (page: number) => {
@@ -55,21 +79,28 @@ export function usePenugasanFilter(tickets: TicketView[]) {
   return {
     search,
     setSearch,
+
     cabangFilter,
     setCabangFilter,
+
     statusFilter,
     setStatusFilter,
+
     currentPage,
     setCurrentPage,
+
     filtered,
-    paginatedTickets: pagination.paginatedTickets,
-    totalPages: pagination.totalPages,
-    safeCurrentPage: pagination.safeCurrentPage,
-    startIndex: pagination.startIndex,
-    endIndex: pagination.endIndex,
+    paginatedTickets,
+
+    totalPages,
+    safeCurrentPage,
+    startIndex,
+    endIndex,
+
     stats,
     tabs,
     units,
+
     handlePageChange,
     resetFilter,
   };

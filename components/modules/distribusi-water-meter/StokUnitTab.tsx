@@ -1,6 +1,9 @@
+"use client";
+
 import { MapPin } from "lucide-react";
 
-import { SearchInput, SelectDropdown } from "@/components/ui";
+import { SelectDropdown } from "@/components/ui";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 import type { PengirimanWmStockTabProps } from "@/types/pengirimanWm.types";
 
@@ -8,34 +11,31 @@ import { aggregateDetails, formatNumber } from "@/utils/pengirimanWm.utils";
 
 export default function StokUnitTab({
   filteredUnit,
-  search,
   cabangFilter,
   unitFilterOptions,
-  onSearchChange,
   onCabangFilterChange,
   getUnitPengiriman,
   getUnitWmTerpasang,
   getUnitTotalDikirim,
   getUnitStok,
 }: PengirimanWmStockTabProps) {
+  const { hasRole, loading: authLoading } = useAuth();
+
+  const isAdminPusat = !authLoading && hasRole("admin_pusat");
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row">
-        <SearchInput
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Cari unit cabang..."
-          className="w-full sm:max-w-md"
-        />
-
-        <SelectDropdown
-          value={cabangFilter}
-          onChange={onCabangFilterChange}
-          options={unitFilterOptions}
-          icon={<MapPin className="h-3.5 w-3.5" />}
-          className="w-full sm:w-56"
-        />
-      </div>
+      {isAdminPusat && (
+        <div className="flex justify-end rounded-lg border border-slate-200 bg-white p-4">
+          <SelectDropdown
+            value={cabangFilter}
+            onChange={onCabangFilterChange}
+            options={unitFilterOptions}
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            className="w-full sm:w-56"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredUnit.map((unit) => {
@@ -43,6 +43,9 @@ export default function StokUnitTab({
           const totalDikirim = getUnitTotalDikirim(unit.id_unit);
           const totalTerpasang = getUnitWmTerpasang(unit.id_unit);
           const stokTersedia = getUnitStok(unit.id_unit);
+
+          // Rincian ini berasal dari riwayat pengiriman,
+          // bukan rincian stok tersisa saat ini.
           const detailAggregated = aggregateDetails(unitPengiriman);
 
           return (
@@ -96,29 +99,31 @@ export default function StokUnitTab({
 
               <div className="space-y-2 border-t border-slate-100 pt-3">
                 <div className="text-xs font-semibold text-slate-600">
-                  Rincian Pengiriman per Merk dan Ukuran:
+                  Riwayat Pengiriman per Merk dan Ukuran:
                 </div>
 
                 {detailAggregated.length > 0 ? (
-                  detailAggregated.map((detail) => (
-                    <div
-                      key={`${detail.id_merk}-${detail.ukuran_dn}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-slate-50 p-2 text-xs"
-                    >
-                      <div>
-                        <span className="block font-medium text-slate-700">
-                          {detail.merk}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {detail.ukuran_dn}
+                  <div className="max-h-36 space-y-2 overflow-y-auto pr-1">
+                    {detailAggregated.map((detail) => (
+                      <div
+                        key={`${detail.id_merk}-${detail.ukuran_dn}`}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-slate-50 p-2 text-xs"
+                      >
+                        <div>
+                          <span className="block font-medium text-slate-700">
+                            {detail.merk}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {detail.ukuran_dn}
+                          </span>
+                        </div>
+
+                        <span className="whitespace-nowrap font-sans font-bold text-pdam-primary">
+                          {formatNumber(detail.jumlah)} Unit
                         </span>
                       </div>
-
-                      <span className="whitespace-nowrap font-mono font-bold text-pdam-primary">
-                        {formatNumber(detail.jumlah)} Unit
-                      </span>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
                   <div className="text-xs italic text-slate-400">
                     Belum ada catatan pengiriman.
@@ -128,8 +133,9 @@ export default function StokUnitTab({
 
               {stokTersedia < 0 && (
                 <p className="text-[11px] text-red-600">
-                  Perhatian: jumlah WM aktif terpasang melebihi total pengiriman
-                  yang tercatat. Periksa kelengkapan data.
+                  Perhatian: jumlah WM terpasang menurut data penggantian
+                  melebihi total pengiriman yang tercatat. Periksa data
+                  pengiriman dan penggantian WM.
                 </p>
               )}
             </div>

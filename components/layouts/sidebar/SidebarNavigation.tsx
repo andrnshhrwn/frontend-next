@@ -51,10 +51,10 @@ const MENU_GROUPS: MenuGroup[] = [
     groupLabel: "Kelola Data",
     items: [
       {
-        name: "Water Meter",
+        name: "Distribusi WM",
         href: "/distribusi-water-meter",
         icon: Droplet,
-        allowedRoles: ["admin_pusat"],
+        allowedRoles: ["admin_pusat", "admin_cabang"],
       },
       {
         name: "Pelanggan",
@@ -69,10 +69,10 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["admin_pusat", "admin_cabang"],
       },
       {
-        name: "Validasi",
+        name: "Validasi BAP",
         href: "/validasi",
         icon: BadgeCheck,
-        allowedRoles: ["admin_pusat"],
+        allowedRoles: ["admin_pusat", "admin_cabang"],
       },
     ],
   },
@@ -101,7 +101,7 @@ const MENU_GROUPS: MenuGroup[] = [
         name: "Data User",
         href: "/master-data/users",
         icon: UserCog,
-        allowedRoles: ["admin_pusat"],
+        allowedRoles: ["admin_pusat", "admin_cabang"],
       },
     ],
   },
@@ -139,10 +139,11 @@ export default function SidebarNavigation({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   onClick={closeMobileSidebar}
                   title={isCollapsed ? item.name : undefined}
                   aria-current={isActive ? "page" : undefined}
-                  className={`group relative flex items-center rounded-sm font-semibold transition-all duration-200
+                  className={`group relative tracking-wider flex items-center rounded-sm font-semibold transition-all duration-200
                     ${
                       isCollapsed
                         ? "mx-auto h-10 w-10 justify-center p-0"

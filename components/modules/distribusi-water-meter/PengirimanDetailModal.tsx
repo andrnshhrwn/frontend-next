@@ -11,10 +11,12 @@ import { BaseModal } from "@/components/ui";
 import type { PengirimanWmDetailModalProps } from "@/types/pengirimanWm.types";
 
 import { aggregateDetails, formatNumber } from "@/utils/pengirimanWm.utils";
+import { formatTanggal } from "@/lib/formatDate";
 
 export default function PengirimanDetailModal({
   isOpen,
   pengiriman,
+  canManage,
   onClose,
   onEdit,
 }: PengirimanWmDetailModalProps) {
@@ -37,7 +39,7 @@ export default function PengirimanDetailModal({
               Tanggal Pengiriman
             </span>
             <span className="font-semibold text-slate-800">
-              {pengiriman.tgl_pengiriman}
+              {formatTanggal(pengiriman.tgl_pengiriman)}
             </span>
           </div>
 
@@ -56,7 +58,7 @@ export default function PengirimanDetailModal({
               Dicatat Oleh
             </span>
             <span className="font-semibold text-slate-800">
-              {pengiriman.user_pusat?.fullname ?? "-"}
+              {pengiriman.user_pencatat?.fullname ?? "-"}
             </span>
           </div>
 
@@ -92,10 +94,10 @@ export default function PengirimanDetailModal({
                       <td className="px-3 py-2 font-medium text-slate-800">
                         {detail.merk}
                       </td>
-                      <td className="px-3 py-2 font-mono text-slate-500">
+                      <td className="px-3 py-2 font-sans text-slate-500">
                         {detail.ukuran_dn}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono font-bold text-pdam-primary">
+                      <td className="px-3 py-2 text-right font-sans font-bold text-pdam-primary">
                         {formatNumber(detail.jumlah)} Unit
                       </td>
                     </tr>
@@ -107,7 +109,7 @@ export default function PengirimanDetailModal({
                     <td colSpan={2} className="px-3 py-2.5 text-right">
                       Total Akumulasi:
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-pdam-primary">
+                    <td className="px-3 py-2.5 text-right font-sans text-pdam-primary">
                       {formatNumber(pengiriman.total_wm)} Unit
                     </td>
                   </tr>
@@ -136,14 +138,16 @@ export default function PengirimanDetailModal({
             Tutup
           </button>
 
-          <button
-            type="button"
-            onClick={() => onEdit(pengiriman)}
-            className="btn btn-sm rounded-md border-none bg-pdam-primary text-white hover:bg-pdam-primary/90"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit Pengiriman
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => onEdit(pengiriman)}
+              className="btn btn-sm rounded-md border-none bg-pdam-primary text-white hover:bg-pdam-navy"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit Pengiriman
+            </button>
+          )}
         </div>
       </div>
     </BaseModal>

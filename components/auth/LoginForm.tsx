@@ -39,7 +39,7 @@ export default function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} method="post" className="space-y-5">
         <AuthInput
           id="username"
           name="username"

@@ -149,18 +149,16 @@ export function getPaginatedPenugasan(
   const safeCurrentPage =
     totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
 
-  const start = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
 
-  const startIndex = filtered.length === 0 ? 0 : start + 1;
-
-  const endIndex = Math.min(safeCurrentPage * ITEMS_PER_PAGE, filtered.length);
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filtered.length);
 
   return {
     totalPages,
     safeCurrentPage,
     startIndex,
     endIndex,
-    paginatedTickets: filtered.slice(start, start + ITEMS_PER_PAGE),
+    paginatedTickets: filtered.slice(startIndex, endIndex),
   };
 }
 

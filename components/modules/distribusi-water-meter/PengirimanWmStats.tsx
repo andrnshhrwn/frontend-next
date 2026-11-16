@@ -15,9 +15,9 @@ export default function PengirimanWmStats({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        title="Total WM Dikirim Pusat"
+        title="Total WM Dikirim ke Cabang"
         value={formatNumber(totalPengirimanWM)}
-        subtext="Akumulasi seluruh pengiriman"
+        subtext="Akumulasi seluruh pengiriman yang tercatat"
         icon={<Truck className="h-5 w-5" />}
         variant="navy"
       />

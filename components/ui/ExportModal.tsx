@@ -153,7 +153,7 @@ export function ExportModal({
             type="button"
             onClick={handleExport}
             disabled={selectedCols.length === 0}
-            className="btn btn-sm bg-pdam-primary hover:bg-pdam-primary/90 text-white border-none flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+            className="btn btn-sm bg-pdam-primary hover:bg-pdam-navy text-white border-none flex items-center gap-1.5 shadow-xs disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             Unduh CSV
