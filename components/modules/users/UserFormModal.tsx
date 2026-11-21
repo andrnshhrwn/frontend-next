@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { AlertCircle, Check, Loader2, UserPlus } from "lucide-react";
 import { BaseModal } from "@/components/ui";
-import { useAuth } from "@/components/providers/AuthProvider";
 import type { User, Unit, UserRole, UserSavePayload } from "@/types/user.types";
 import {
   btnGhost,
@@ -13,6 +12,7 @@ import {
   selectCls,
   getErrorMessage,
 } from "@/utils/user.utils";
+import { useHasRole } from "@/lib/auth/auth-store";
 
 function Modal({
   title,
@@ -63,10 +63,8 @@ export default function UserFormModal({
   onClose,
   onSave,
 }: UserFormModalProps) {
-  const { hasRole } = useAuth();
-
-  const isAdminPusat = hasRole("admin_pusat");
-  const isAdminCabang = hasRole("admin_cabang");
+  const isAdminPusat = useHasRole("admin_pusat");
+  const isAdminCabang = useHasRole("admin_cabang");
 
   const isEdit = Boolean(editing);
 

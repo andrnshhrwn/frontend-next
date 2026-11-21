@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthStore } from "@/lib/auth/auth-store";
+
 import SidebarHeader from "./sidebar/SidebarHeader";
 import SidebarNavigation from "./sidebar/SidebarNavigation";
 import SidebarUserRole from "./sidebar/SidebarUserRole";
@@ -19,7 +20,16 @@ export default function Sidebar({
   closeMobileSidebar,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { hasRole, user, loading } = useAuth();
+
+  // Mengambil data autentikasi dari Zustand.
+  const user = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
+
+  const authLoading = authStatus === "idle" || authStatus === "checking";
+
+  // Pengganti hasRole dari AuthProvider.
+  const hasRole = (...roles: string[]) =>
+    user !== null && roles.includes(user.role);
 
   return (
     <aside
@@ -35,7 +45,7 @@ export default function Sidebar({
 
         <SidebarUserRole user={user} isCollapsed={isCollapsed} />
 
-        {loading ? (
+        {authLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -64,6 +74,7 @@ export default function Sidebar({
             aria-label="Perluas sidebar"
           >
             <span className="sr-only">Perluas sidebar</span>
+
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"

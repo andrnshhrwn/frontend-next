@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 
 import { BaseModal, ExportModal, useToast } from "@/components/ui";
-import { useAuth } from "@/components/providers/AuthProvider";
 
 import { validasiService } from "@/services/validasiService";
 
@@ -29,14 +28,16 @@ import {
   matchesSearch,
   PAGE_LIMIT,
 } from "@/utils/validasi.utils";
+import { useAuthStore, useHasRole } from "@/lib/auth/auth-store";
 
 export default function ValidasiPage() {
   const { showToast } = useToast();
-
-  const { hasRole, loading: authLoading } = useAuth();
-
   // ACCESS CONTROL
-  const canManageValidation = !authLoading && hasRole("admin_pusat");
+  const canManageValidation = useHasRole("admin_pusat");
+
+  const authStatus = useAuthStore((state) => state.status);
+
+  const authLoading = authStatus === "idle" || authStatus === "checking";
 
   // PAGE STATE
   const [processing, setProcessing] = useState(false);

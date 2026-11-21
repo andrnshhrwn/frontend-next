@@ -5,6 +5,8 @@ const TOKEN_KEY = "pdam_access_token";
 const USER_KEY = "pdam_user";
 const SESSION_COOKIE = "pdam_session";
 
+const DEFAULT_TIMEOUT_MS = 10000;
+
 // ======================================================
 // TYPES
 // ======================================================
@@ -27,6 +29,7 @@ export interface ApiValidationError {
 
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
+  timeoutMs?: number;
 }
 
 type StorageType = "local" | "session";
@@ -176,7 +179,15 @@ export async function apiRequest<T = unknown>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { params, headers = {}, ...customOptions } = options;
+  const {
+    params,
+    headers = {},
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    signal: externalSignal,
+    ...customOptions
+  } = options;
+
+  const cleanEndpoint = endpoint.split("?")[0];
 
   let url = `${API_BASE_URL}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
@@ -210,16 +221,44 @@ export async function apiRequest<T = unknown>(
   const isFormData =
     typeof FormData !== "undefined" && customOptions.body instanceof FormData;
 
-  if (!isFormData && !requestHeaders.has("Content-Type")) {
+  const hasBody =
+    customOptions.body !== undefined && customOptions.body !== null;
+
+  // Content-Type hanya untuk request yang punya body (JSON).
+  if (hasBody && !isFormData && !requestHeaders.has("Content-Type")) {
     requestHeaders.set("Content-Type", "application/json");
   }
 
-  const isLoginEndpoint = /\/auth\/login\/?$/.test(endpoint.split("?")[0]);
+  const isLoginEndpoint = /\/auth\/login\/?$/.test(cleanEndpoint);
+  const isAuthMeEndpoint = /\/auth\/me\/?$/.test(cleanEndpoint);
+
+  // ----------------------------------------------------
+  // TIMEOUT + ABORT
+  // ----------------------------------------------------
+
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  const onExternalAbort = () => controller.abort();
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+  }
 
   try {
     const response = await fetch(url, {
       ...customOptions,
       headers: requestHeaders,
+      signal: controller.signal,
     });
 
     // ==================================================
@@ -227,13 +266,17 @@ export async function apiRequest<T = unknown>(
     // ==================================================
 
     if (response.status === 401 && !isLoginEndpoint) {
-      clearStoredSession();
+      // AuthStore bertanggung jawab menangani sesi dari /auth/me.
+      // Endpoint lainnya tetap menggunakan mekanisme redirect global.
+      if (!isAuthMeEndpoint) {
+        clearStoredSession();
 
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
-        window.location.replace("/login?session_expired=true");
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/login"
+        ) {
+          window.location.replace("/login?session_expired=true");
+        }
       }
 
       throw new ApiError(
@@ -280,12 +323,23 @@ export async function apiRequest<T = unknown>(
       throw error;
     }
 
+    if (timedOut) {
+      throw new ApiError(
+        0,
+        `Server tidak merespons dalam ${Math.round(timeoutMs / 1000)} detik.`,
+        "TIMEOUT",
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Tidak diketahui";
 
     throw new ApiError(
       0,
       message || "Tidak dapat terhubung ke server backend PAM Tirta Kamuning.",
     );
+  } finally {
+    clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
   }
 }
 

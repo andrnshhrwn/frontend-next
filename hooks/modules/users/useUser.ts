@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   userService,
   type CreateUserPayload,
   type CreateTeknisiPayload,
   type UpdateUserPayload,
 } from "@/services/userService";
+
 import { unitService } from "@/services/unitService";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthStore } from "@/lib/auth/auth-store";
 import { useToast } from "@/components/ui";
+
 import type {
   User,
   Unit,
@@ -15,6 +20,7 @@ import type {
   RoleFilter,
   UserSavePayload,
 } from "@/types/user.types";
+
 import {
   buildUserCsvRows,
   countUserRoles,
@@ -47,10 +53,17 @@ function downloadCsv(filename: string, rows: string[][]) {
 export function useUser() {
   const { showToast } = useToast();
 
-  const { hasRole, loading: authLoading, isAuthenticated } = useAuth();
+  // Autentikasi dari Zustand.
+  const user = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
 
-  const isAdminPusat = hasRole("admin_pusat");
-  const isAdminCabang = hasRole("admin_cabang");
+  const authLoading = authStatus === "idle" || authStatus === "checking";
+
+  const isAuthenticated = authStatus === "authenticated";
+
+  const isAdminPusat = isAuthenticated && user?.role === "admin_pusat";
+
+  const isAdminCabang = isAuthenticated && user?.role === "admin_cabang";
 
   const [users, setUsers] = useState<User[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -68,27 +81,41 @@ export function useUser() {
   const [showCreate, setShowCreate] = useState(false);
   const [passwordUser, setPasswordUser] = useState<User | null>(null);
 
+  // Mencegah request lama menimpa data dari sesi terbaru.
+  const requestIdRef = useRef(0);
+
+  const clearData = useCallback(() => {
+    setUsers([]);
+    setUnits([]);
+  }, []);
+
   const loadData = useCallback(
     async (isRefresh = false) => {
-      // Tunggu sampai AuthProvider selesai memeriksa sesi.
+      // Jangan mengambil data sebelum autentikasi selesai.
       if (authLoading) return;
+
+      const requestId = ++requestIdRef.current;
 
       try {
         if (isRefresh) {
           setRefreshing(true);
         } else {
           setLoading(true);
-
-          // Bersihkan data lama ketika memuat ulang sesi atau role.
-          setUsers([]);
-          setUnits([]);
+          clearData();
         }
 
         setPageError("");
 
+        if (authStatus === "error") {
+          clearData();
+          setPageError(
+            "Sesi pengguna tidak dapat diverifikasi. Periksa koneksi atau coba kembali.",
+          );
+          return;
+        }
+
         if (!isAuthenticated) {
-          setUsers([]);
-          setUnits([]);
+          clearData();
           setPageError("Sesi pengguna tidak ditemukan. Silakan login kembali.");
           return;
         }
@@ -99,41 +126,67 @@ export function useUser() {
             unitService.findAll(),
           ]);
 
+          if (requestId !== requestIdRef.current) return;
+
           setUsers(userData);
           setUnits(unitData);
         } else if (isAdminCabang) {
           const technicianData = await userService.findTeknisi();
 
+          if (requestId !== requestIdRef.current) return;
+
           setUsers(technicianData);
           setUnits([]);
         } else {
-          setUsers([]);
-          setUnits([]);
+          clearData();
           setPageError("Kamu tidak memiliki akses untuk mengelola pengguna.");
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        if (requestId !== requestIdRef.current) return;
+
+        clearData();
         setPageError(getErrorMessage(error));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [authLoading, isAuthenticated, isAdminPusat, isAdminCabang],
+    [
+      authLoading,
+      authStatus,
+      isAuthenticated,
+      isAdminPusat,
+      isAdminCabang,
+      clearData,
+    ],
   );
 
+  // Ambil data setelah autentikasi selesai diverifikasi.
   useEffect(() => {
-    if (!authLoading) {
-      void loadData();
-    }
+    if (authLoading) return;
+
+    void loadData();
   }, [authLoading, loadData]);
 
+  // Batalkan validitas request sebelumnya ketika identitas sesi berubah.
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [user?.id_user, authStatus]);
+
+  // Filter pengguna.
   const filteredUsers = useMemo(
     () => filterUsers(users, roleFilter, unitFilter, search),
     [users, roleFilter, unitFilter, search],
   );
 
+  // Statistik berdasarkan role.
   const roleCounts = useMemo(() => countUserRoles(users), [users]);
 
+  // Membuat atau memperbarui pengguna.
   const handleSaveUser = async (payload: UserSavePayload, isNew: boolean) => {
     if (authLoading || !isAuthenticated) {
       throw new Error("Sesi pengguna tidak valid. Silakan login kembali.");
@@ -177,6 +230,7 @@ export function useUser() {
     await loadData(true);
   };
 
+  // Mengubah password pengguna lain.
   const handleChangePassword = async (password: string) => {
     if (authLoading || !isAuthenticated || !isAdminPusat) {
       throw new Error(
@@ -193,8 +247,9 @@ export function useUser() {
     setPasswordUser(null);
   };
 
+  // Ekspor data pengguna ke CSV.
   const handleExport = () => {
-    if (!isAdminPusat && !isAdminCabang) {
+    if (!isAuthenticated || (!isAdminPusat && !isAdminCabang)) {
       showToast("Kamu tidak memiliki akses untuk mengekspor data.", "error");
       return;
     }
@@ -210,16 +265,20 @@ export function useUser() {
   return {
     users,
     units,
+
     loading,
     refreshing,
     pageError,
+
     activeTab,
     roleFilter,
     unitFilter,
     search,
+
     editingUser,
     showCreate,
     passwordUser,
+
     filteredUsers,
     roleCounts,
 
@@ -230,6 +289,7 @@ export function useUser() {
     setRoleFilter,
     setUnitFilter,
     setSearch,
+
     setEditingUser,
     setShowCreate,
     setPasswordUser,

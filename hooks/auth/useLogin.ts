@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { authService } from "@/services/authService";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthStore } from "@/lib/auth/auth-store";
 
 export default function useLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { setSession, loading: authLoading, isAuthenticated } = useAuth();
+  const setSession = useAuthStore((s) => s.setSession);
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -20,25 +20,6 @@ export default function useLogin() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // ====================================================
-  // CHECK AUTHENTICATION
-  // ====================================================
-
-  useEffect(() => {
-    const sessionExpired = searchParams.get("session_expired") === "true";
-
-    // Jangan redirect jika sesi baru saja kedaluwarsa.
-    if (sessionExpired) return;
-
-    // Tunggu validasi AuthProvider selesai.
-    if (authLoading) return;
-
-    // Pengguna yang sudah terautentikasi masuk dashboard.
-    if (isAuthenticated) {
-      router.replace("/dashboard");
-    }
-  }, [router, searchParams, authLoading, isAuthenticated]);
 
   // ====================================================
   // HANDLE EXPIRED SESSION
@@ -77,7 +58,7 @@ export default function useLogin() {
         rememberMe,
       );
 
-      // Update AuthProvider.
+      // Update store.
       setSession(result.user);
 
       // Redirect dashboard.

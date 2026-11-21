@@ -3,7 +3,6 @@
 import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 
-import { useAuth } from "@/components/providers/AuthProvider";
 import PageSkeleton from "@/components/layouts/PageSkeleton";
 import { useToast } from "@/components/ui";
 
@@ -27,26 +26,32 @@ import { usePenugasanActions } from "@/hooks/modules/penugasan/usePenugasanActio
 import { usePenugasanModals } from "@/hooks/modules/penugasan/usePenugasanModals";
 
 import { ITEMS_PER_PAGE } from "@/utils/penugasan.utils";
+import { useAuthStore } from "@/lib/auth/auth-store";
 
 export default function PenugasanPusatPage() {
   const { showToast } = useToast();
 
-  // Sumber user yang konsisten di server dan client.
-  const { user: currentUser, loading: authLoading } = useAuth();
+  // Sumber autentikasi dari Zustand.
+  const currentUser = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
 
+  const authLoading = authStatus === "idle" || authStatus === "checking";
+
+  // Hak akses berdasarkan role pengguna.
   const isAdminPusat = currentUser?.role === "admin_pusat";
   const isAdminCabang = currentUser?.role === "admin_cabang";
 
   // ID unit dari backend berupa UUID string.
   const unitId = currentUser?.id_unit ? String(currentUser.id_unit) : "";
+
   const unitName = currentUser?.nama_unit ?? "Unit";
 
+  // Konfigurasi akses dan pengambilan data.
   const access = {
     isAdminPusat,
     isAdminCabang,
     unitId,
     unitName,
-    // Jangan fetch sebelum sesi siap.
     enabled: !authLoading && (isAdminPusat || isAdminCabang),
   };
 
@@ -100,16 +105,22 @@ export default function PenugasanPusatPage() {
     showToast,
   });
 
+  // Data penugasan untuk setiap modal.
   const editTicket = tickets.find((item) => item.id === modals.editId) ?? null;
+
   const deleteTicket =
     tickets.find((item) => item.id === modals.deleteId) ?? null;
+
   const assignTicket =
     tickets.find((item) => item.id === modals.assignId) ?? null;
+
   const detailTicket =
     tickets.find((item) => item.id === modals.detailId) ?? null;
+
   const cancelTicket =
     tickets.find((item) => item.id === modals.cancelId) ?? null;
 
+  // Refresh data penugasan.
   const handleRefresh = async () => {
     setRefreshing(true);
 
@@ -121,16 +132,27 @@ export default function PenugasanPusatPage() {
   };
 
   /* ---------------------------------------------------------------- */
-  /* Access control (setelah semua hook)                                */
+  /* Access control                                                    */
   /* ---------------------------------------------------------------- */
 
   if (authLoading) {
     return <PageSkeleton />;
   }
 
+  if (authStatus === "error") {
+    return (
+      <div className="card border border-slate-200 bg-white p-6">
+        <p className="text-sm font-semibold text-pdam-red">
+          Gagal memverifikasi sesi pengguna. Silakan muat ulang halaman atau
+          login kembali.
+        </p>
+      </div>
+    );
+  }
+
   if (!isAdminPusat && !isAdminCabang) {
     return (
-      <div className="card bg-white border border-slate-200 p-6">
+      <div className="card border border-slate-200 bg-white p-6">
         <p className="text-sm font-semibold text-pdam-red">
           Anda tidak memiliki akses ke halaman ini.
         </p>
@@ -156,15 +178,20 @@ export default function PenugasanPusatPage() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-pdam-red/30 bg-pdam-red/5 p-3 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-pdam-red mt-0.5" />
+        <div className="flex items-start gap-2 rounded-lg border border-pdam-red/30 bg-pdam-red/5 p-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 text-pdam-red" />
 
           <div className="flex-1">
             <p className="text-xs font-semibold text-pdam-red">{error}</p>
           </div>
 
-          <button onClick={() => setError("")} className="text-slate-400">
-            <X className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="text-slate-400"
+            aria-label="Tutup pesan error"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}

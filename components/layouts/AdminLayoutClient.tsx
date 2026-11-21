@@ -3,15 +3,20 @@
 import { Suspense, useState } from "react";
 import Sidebar from "@/components/layouts/Sidebar";
 import Header from "@/components/layouts/Header";
-import { useAuth } from "../providers/AuthProvider";
+import { AuthGuard } from "@/components/providers/AuthGuard";
 import PageSkeleton from "./PageSkeleton";
-import SessionError from "./SessionError";
 
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGuard>
+      <AdminShell>{children}</AdminShell>
+    </AuthGuard>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  const { verificationError, retry } = useAuth();
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
   const openMobileSidebar = () => setIsMobileOpen(true);
@@ -37,11 +42,7 @@ export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-pdam-bg">
           <div className="max-w-350 w-full mx-auto">
-            {verificationError ? (
-              <SessionError onRetry={retry} />
-            ) : (
-              <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
-            )}
+            <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
           </div>
         </main>
       </div>

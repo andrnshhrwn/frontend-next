@@ -3,7 +3,7 @@
 import { MapPin } from "lucide-react";
 
 import { SelectDropdown } from "@/components/ui";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthStore } from "@/lib/auth/auth-store";
 
 import type { PengirimanWmStockTabProps } from "@/types/pengirimanWm.types";
 
@@ -19,12 +19,22 @@ export default function StokUnitTab({
   getUnitTotalDikirim,
   getUnitStok,
 }: PengirimanWmStockTabProps) {
-  const { hasRole, loading: authLoading } = useAuth();
+  // Mengambil data autentikasi dari Zustand.
+  const user = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
 
-  const isAdminPusat = !authLoading && hasRole("admin_pusat");
+  const authLoading = authStatus === "idle" || authStatus === "checking";
+
+  // Filter unit hanya tersedia untuk Admin Pusat
+  // setelah sesi berhasil diverifikasi.
+  const isAdminPusat =
+    !authLoading &&
+    authStatus === "authenticated" &&
+    user?.role === "admin_pusat";
 
   return (
     <div className="space-y-4">
+      {/* Filter unit khusus Admin Pusat */}
       {isAdminPusat && (
         <div className="flex justify-end rounded-lg border border-slate-200 bg-white p-4">
           <SelectDropdown
@@ -37,6 +47,7 @@ export default function StokUnitTab({
         </div>
       )}
 
+      {/* Daftar stok setiap unit */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredUnit.map((unit) => {
           const unitPengiriman = getUnitPengiriman(unit.id_unit);
@@ -44,7 +55,7 @@ export default function StokUnitTab({
           const totalTerpasang = getUnitWmTerpasang(unit.id_unit);
           const stokTersedia = getUnitStok(unit.id_unit);
 
-          // Rincian ini berasal dari riwayat pengiriman,
+          // Rincian berasal dari riwayat pengiriman,
           // bukan rincian stok tersisa saat ini.
           const detailAggregated = aggregateDetails(unitPengiriman);
 
@@ -53,12 +64,14 @@ export default function StokUnitTab({
               key={unit.id_unit}
               className="space-y-4 rounded-lg border border-slate-200 bg-white p-5"
             >
+              {/* Informasi unit dan stok tersedia */}
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Unit Cabang
                   </span>
-                  <h4 className="text-base font-bold text-slate-800 capitalize">
+
+                  <h4 className="text-base font-bold capitalize text-slate-800">
                     {unit.nama_unit}
                   </h4>
                 </div>
@@ -68,11 +81,13 @@ export default function StokUnitTab({
                 </span>
               </div>
 
+              {/* Ringkasan jumlah WM */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-md bg-slate-50 p-2">
                   <span className="block text-[10px] text-slate-500">
                     Dikirim
                   </span>
+
                   <span className="text-sm font-bold text-slate-800">
                     {formatNumber(totalDikirim)}
                   </span>
@@ -82,6 +97,7 @@ export default function StokUnitTab({
                   <span className="block text-[10px] text-blue-600">
                     Terpasang
                   </span>
+
                   <span className="text-sm font-bold text-blue-800">
                     {formatNumber(totalTerpasang)}
                   </span>
@@ -91,12 +107,14 @@ export default function StokUnitTab({
                   <span className="block text-[10px] text-emerald-600">
                     Tersedia
                   </span>
+
                   <span className="text-sm font-bold text-emerald-800">
                     {formatNumber(stokTersedia)}
                   </span>
                 </div>
               </div>
 
+              {/* Rincian riwayat pengiriman */}
               <div className="space-y-2 border-t border-slate-100 pt-3">
                 <div className="text-xs font-semibold text-slate-600">
                   Riwayat Pengiriman per Merk dan Ukuran:
@@ -113,6 +131,7 @@ export default function StokUnitTab({
                           <span className="block font-medium text-slate-700">
                             {detail.merk}
                           </span>
+
                           <span className="text-[10px] text-slate-400">
                             {detail.ukuran_dn}
                           </span>
@@ -131,6 +150,7 @@ export default function StokUnitTab({
                 )}
               </div>
 
+              {/* Peringatan ketidaksesuaian data stok */}
               {stokTersedia < 0 && (
                 <p className="text-[11px] text-red-600">
                   Perhatian: jumlah WM terpasang menurut data penggantian
@@ -142,6 +162,7 @@ export default function StokUnitTab({
           );
         })}
 
+        {/* Kondisi data kosong */}
         {filteredUnit.length === 0 && (
           <div className="col-span-full rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
             Tidak ada unit cabang yang ditemukan.

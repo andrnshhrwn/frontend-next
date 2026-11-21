@@ -3,7 +3,10 @@ import { authGuard } from "@/middleware/authGuard";
 
 export function proxy(request: NextRequest) {
   const guardResponse = authGuard(request);
-  if (guardResponse) return guardResponse;
+
+  if (guardResponse) {
+    return guardResponse;
+  }
 
   return NextResponse.next();
 }

@@ -18,8 +18,6 @@ import {
   StokUnitTab,
 } from "@/components/modules/distribusi-water-meter";
 
-import { useAuth } from "@/components/providers/AuthProvider";
-
 import { usePengirimanWmData } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmData";
 import { usePengirimanWmStats } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmStats";
 import { usePengirimanWmFilter } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmFilter";
@@ -30,15 +28,14 @@ import type { PengirimanWm } from "@/services/pengirimanService";
 import type { PengirimanWmExportOptions } from "@/types/pengirimanWm.types";
 
 import { EXPORT_COLUMNS } from "@/utils/pengirimanWm.utils";
+import { useHasRole } from "@/lib/auth/auth-store";
 
 type ActiveTab = "stok" | "pengiriman";
 
 export default function DistribusiWaterMeterPage() {
   const { showToast } = useToast();
 
-  const { hasRole, loading: authLoading } = useAuth();
-
-  const canManage = !authLoading && hasRole("admin_cabang");
+  const canManage = useHasRole("admin_cabang");
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("stok");
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuthStore } from "@/lib/auth/auth-store";
 
 import type { PengirimanWm } from "@/services/pengirimanService";
 import type { Unit } from "@/services/unitService";
@@ -13,10 +13,19 @@ export function usePengirimanWmFilter(
   pengirimanList: PengirimanWm[],
   unitList: Unit[],
 ) {
-  const { hasRole, userUnitId, loading: authLoading } = useAuth();
+  // Mengambil autentikasi dari Zustand.
+  const user = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
 
-  const isAdminPusat = !authLoading && hasRole("admin_pusat");
-  const isAdminCabang = !authLoading && hasRole("admin_cabang");
+  const authLoading = authStatus === "idle" || authStatus === "checking";
+
+  const isAuthenticated = authStatus === "authenticated";
+
+  const userRole = isAuthenticated ? user?.role : undefined;
+  const userUnitId = isAuthenticated ? (user?.id_unit ?? null) : null;
+
+  const isAdminPusat = userRole === "admin_pusat";
+  const isAdminCabang = userRole === "admin_cabang";
 
   const [search, setSearch] = useState("");
   const [cabangFilter, setCabangFilter] = useState("Semua");
@@ -24,7 +33,7 @@ export function usePengirimanWmFilter(
 
   // Batasi daftar unit berdasarkan hak akses pengguna.
   const accessibleUnitList = useMemo(() => {
-    if (authLoading) return [];
+    if (authLoading || !isAuthenticated) return [];
 
     if (isAdminPusat) return unitList;
 
@@ -33,11 +42,18 @@ export function usePengirimanWmFilter(
     }
 
     return [];
-  }, [authLoading, isAdminPusat, isAdminCabang, userUnitId, unitList]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    isAdminPusat,
+    isAdminCabang,
+    userUnitId,
+    unitList,
+  ]);
 
   // Batasi riwayat pengiriman berdasarkan unit yang boleh diakses.
   const accessiblePengirimanList = useMemo(() => {
-    if (authLoading) return [];
+    if (authLoading || !isAuthenticated) return [];
 
     if (isAdminPusat) return pengirimanList;
 
@@ -48,10 +64,18 @@ export function usePengirimanWmFilter(
     }
 
     return [];
-  }, [authLoading, isAdminPusat, isAdminCabang, userUnitId, pengirimanList]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    isAdminPusat,
+    isAdminCabang,
+    userUnitId,
+    pengirimanList,
+  ]);
 
+  // Filter riwayat pengiriman.
   const filteredPengiriman = useMemo(() => {
-    const keyword = search.toLowerCase();
+    const keyword = search.toLowerCase().trim();
 
     return accessiblePengirimanList.filter((item) => {
       const namaUnit = item.unit_tujuan?.nama_unit ?? "";
@@ -68,8 +92,9 @@ export function usePengirimanWmFilter(
     });
   }, [accessiblePengirimanList, search, cabangFilter]);
 
+  // Filter daftar unit.
   const filteredUnit = useMemo(() => {
-    const keyword = search.toLowerCase();
+    const keyword = search.toLowerCase().trim();
 
     return accessibleUnitList.filter((unit) => {
       const matchSearch = unit.nama_unit.toLowerCase().includes(keyword);
@@ -81,58 +106,69 @@ export function usePengirimanWmFilter(
     });
   }, [accessibleUnitList, search, cabangFilter]);
 
-  const totalPages = Math.ceil(filteredPengiriman.length / ITEMS_PER_PAGE);
+  // Informasi pagination.
+  const totalItems = filteredPengiriman.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-  const paginatedPengiriman = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-
-    return filteredPengiriman.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredPengiriman, currentPage]);
+  const safeCurrentPage =
+    totalPages === 0 ? 1 : Math.min(Math.max(1, currentPage), totalPages);
 
   const startIndex =
-    filteredPengiriman.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE;
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * ITEMS_PER_PAGE;
 
-  const endIndex = Math.min(
-    currentPage * ITEMS_PER_PAGE,
-    filteredPengiriman.length,
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+
+  // Data halaman aktif.
+  const paginatedPengiriman = useMemo(
+    () => filteredPengiriman.slice(startIndex, endIndex),
+    [filteredPengiriman, startIndex, endIndex],
   );
 
-  const unitFilterOptions = useMemo(() => {
-    return [
+  // Pilihan filter berdasarkan unit yang dapat diakses.
+  const unitFilterOptions = useMemo(
+    () => [
       "Semua",
       ...Array.from(new Set(accessibleUnitList.map((unit) => unit.nama_unit))),
-    ];
-  }, [accessibleUnitList]);
+    ],
+    [accessibleUnitList],
+  );
 
+  // Reset halaman ketika pencarian atau filter berubah.
   useEffect(() => {
     setCurrentPage(1);
   }, [search, cabangFilter]);
 
+  // Koreksi halaman jika jumlah data berkurang.
   useEffect(() => {
-    if (totalPages > 0 && currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, safeCurrentPage]);
 
-  // Jika akun berganti unit atau role, reset filter cabang.
+  // Reset filter ketika identitas atau role berubah.
   useEffect(() => {
     setCabangFilter("Semua");
-  }, [userUnitId, isAdminPusat, isAdminCabang]);
+  }, [user?.id_user, userUnitId, userRole]);
 
   return {
     search,
     setSearch,
+
     cabangFilter,
     setCabangFilter,
-    currentPage,
+
+    currentPage: safeCurrentPage,
     setCurrentPage,
+
     filteredPengiriman,
     filteredUnit,
     paginatedPengiriman,
+
     totalPages,
-    totalItems: filteredPengiriman.length,
+    totalItems,
     startIndex,
     endIndex,
+
     unitFilterOptions,
   };
 }
