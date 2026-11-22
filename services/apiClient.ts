@@ -1,10 +1,9 @@
+import axios, { AxiosError, type AxiosRequestConfig } from "axios";
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
-const TOKEN_KEY = "pdam_access_token";
 const USER_KEY = "pdam_user";
-const SESSION_COOKIE = "pdam_session";
-
 const DEFAULT_TIMEOUT_MS = 10000;
 
 // ======================================================
@@ -27,12 +26,29 @@ export interface ApiValidationError {
   message: string;
 }
 
-export interface RequestOptions extends RequestInit {
+export interface RequestOptions {
+  method?: string;
   params?: Record<string, string | number | boolean | undefined | null>;
+  headers?: HeadersInit;
+  body?: unknown;
+  signal?: AbortSignal | null;
   timeoutMs?: number;
+  _retried?: boolean;
 }
 
 type StorageType = "local" | "session";
+
+export interface RefreshResult {
+  token: string;
+  user: StoredUser;
+}
+
+interface ErrorBody {
+  message?: string;
+  error?: string | { message?: string };
+  code?: string;
+  errors?: ApiValidationError[];
+}
 
 // ======================================================
 // API ERROR
@@ -59,7 +75,23 @@ export class ApiError extends Error {
 }
 
 // ======================================================
-// STORAGE HELPERS
+// AXIOS INSTANCES
+// ======================================================
+
+// Untuk data: langsung ke backend Express
+const http = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: DEFAULT_TIMEOUT_MS,
+});
+
+// Untuk auth: ke Route Handler Next (same-origin, membawa cookie httpOnly)
+export const authHttp = axios.create({
+  baseURL: "",
+  timeout: DEFAULT_TIMEOUT_MS,
+});
+
+// ======================================================
+// STORAGE HELPERS (hanya untuk profil user, bukan token)
 // ======================================================
 
 function getStorage(type: StorageType): Storage | null {
@@ -100,39 +132,107 @@ function removeStoredValue(key: string): void {
 }
 
 // ======================================================
-// SESSION COOKIE HELPERS
+// ACCESS TOKEN (disimpan di memori, bukan storage)
 // ======================================================
 
-function setSessionCookie(rememberMe: boolean): void {
-  if (typeof document === "undefined") return;
-
-  const maxAge = rememberMe ? `; max-age=${60 * 60 * 24 * 7}` : "";
-
-  document.cookie = `${SESSION_COOKIE}=1; path=/; SameSite=Lax${maxAge}`;
-}
-
-function removeSessionCookie(): void {
-  if (typeof document === "undefined") return;
-
-  document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
-}
-
-// ======================================================
-// TOKEN STORAGE
-// ======================================================
+let accessToken: string | null = null;
 
 export function getAccessToken(): string | null {
-  return getStoredValue(TOKEN_KEY);
+  return accessToken;
 }
 
-export function setAccessToken(token: string, rememberMe: boolean): void {
-  setStoredValue(TOKEN_KEY, token, rememberMe);
-  setSessionCookie(rememberMe);
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
 }
 
 export function removeAccessToken(): void {
-  removeStoredValue(TOKEN_KEY);
-  removeSessionCookie();
+  accessToken = null;
+}
+
+// ======================================================
+// ERROR HELPERS
+// ======================================================
+
+function extractMessage(data: ErrorBody | null, status: number): string {
+  return (
+    data?.message ??
+    (typeof data?.error === "string" ? data.error : data?.error?.message) ??
+    `Terjadi kesalahan pada server (Status: ${status})`
+  );
+}
+
+export function toApiError(error: unknown, timeoutMs: number): ApiError {
+  if (error instanceof ApiError) return error;
+
+  if (axios.isAxiosError<ErrorBody>(error)) {
+    if (error.response) {
+      const { status, data } = error.response;
+      const body = data && typeof data === "object" ? data : null;
+
+      return new ApiError(
+        status,
+        extractMessage(body, status),
+        body?.code,
+        body?.errors,
+      );
+    }
+
+    if (error.code === AxiosError.ECONNABORTED || error.code === "ETIMEDOUT") {
+      return new ApiError(
+        0,
+        `Server tidak merespons dalam ${Math.round(timeoutMs / 1000)} detik.`,
+        "TIMEOUT",
+      );
+    }
+
+    if (axios.isCancel(error)) {
+      return new ApiError(0, "Permintaan dibatalkan.", "CANCELED");
+    }
+
+    return new ApiError(
+      0,
+      "Tidak dapat terhubung ke server backend PAM Tirta Kamuning.",
+      "NETWORK_ERROR",
+    );
+  }
+
+  return new ApiError(
+    0,
+    error instanceof Error && error.message
+      ? error.message
+      : "Tidak dapat terhubung ke server backend PAM Tirta Kamuning.",
+  );
+}
+
+// ======================================================
+// REFRESH SESSION
+// ======================================================
+
+// Single-flight: banyak request bersamaan -> refresh hanya sekali.
+// Wajib, karena refresh token berotasi di backend.
+let refreshPromise: Promise<RefreshResult> | null = null;
+
+export function refreshSession(): Promise<RefreshResult> {
+  refreshPromise ??= authHttp
+    .post<{ data?: RefreshResult }>("/api/auth/refresh")
+    .then((res) => {
+      const payload = res.data?.data;
+
+      if (!payload?.token || !payload?.user) {
+        throw new ApiError(401, "Sesi refresh tidak valid.");
+      }
+
+      accessToken = payload.token;
+      return { token: payload.token, user: payload.user };
+    })
+    .catch((error: unknown) => {
+      throw toApiError(error, DEFAULT_TIMEOUT_MS);
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
 }
 
 // ======================================================
@@ -180,101 +280,125 @@ export async function apiRequest<T = unknown>(
   options: RequestOptions = {},
 ): Promise<T> {
   const {
+    method = "GET",
     params,
-    headers = {},
+    headers,
+    body,
+    signal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
-    signal: externalSignal,
-    ...customOptions
+    _retried = false,
   } = options;
 
   const cleanEndpoint = endpoint.split("?")[0];
+  const url = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-  let url = `${API_BASE_URL}${
-    endpoint.startsWith("/") ? endpoint : `/${endpoint}`
-  }`;
+  const isLoginEndpoint = /\/auth\/login\/?$/.test(cleanEndpoint);
+  const isAuthMeEndpoint = /\/auth\/me\/?$/.test(cleanEndpoint);
 
-  if (params) {
-    const searchParams = new URLSearchParams();
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("X-Client-Platform", "web");
 
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        searchParams.append(key, String(value));
+  // Body string tanpa Content-Type dianggap JSON.
+  // Objek dan FormData ditangani otomatis oleh axios.
+  if (typeof body === "string" && !requestHeaders.has("Content-Type")) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+
+  // ----------------------------------------------------
+  // PULIHKAN SESI (token memori kosong, mis. setelah reload)
+  // ----------------------------------------------------
+
+  if (
+    typeof window !== "undefined" &&
+    !getAccessToken() &&
+    !isLoginEndpoint &&
+    !requestHeaders.has("Authorization")
+  ) {
+    try {
+      await refreshSession();
+    } catch (err) {
+      if (isAuthMeEndpoint && err instanceof ApiError && err.status === 401) {
+        clearStoredSession();
+        throw err;
       }
-    });
-
-    const queryString = searchParams.toString();
-
-    if (queryString) {
-      url += `?${queryString}`;
     }
   }
 
-  const requestHeaders = new Headers(headers);
   const token = getAccessToken();
 
   if (token && !requestHeaders.has("Authorization")) {
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  requestHeaders.set("X-Client-Platform", "web");
+  // Parameter kosong tidak ikut dikirim
+  const cleanParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(
+          ([, value]) => value !== undefined && value !== null && value !== "",
+        ),
+      )
+    : undefined;
 
-  const isFormData =
-    typeof FormData !== "undefined" && customOptions.body instanceof FormData;
+  const headerObject: Record<string, string> = {};
+  requestHeaders.forEach((value, key) => {
+    headerObject[key] = value;
+  });
 
-  const hasBody =
-    customOptions.body !== undefined && customOptions.body !== null;
-
-  // Content-Type hanya untuk request yang punya body (JSON).
-  if (hasBody && !isFormData && !requestHeaders.has("Content-Type")) {
-    requestHeaders.set("Content-Type", "application/json");
-  }
-
-  const isLoginEndpoint = /\/auth\/login\/?$/.test(cleanEndpoint);
-  const isAuthMeEndpoint = /\/auth\/me\/?$/.test(cleanEndpoint);
-
-  // ----------------------------------------------------
-  // TIMEOUT + ABORT
-  // ----------------------------------------------------
-
-  const controller = new AbortController();
-  let timedOut = false;
-
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
-
-  const onExternalAbort = () => controller.abort();
-
-  if (externalSignal) {
-    if (externalSignal.aborted) {
-      controller.abort();
-    } else {
-      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
-    }
-  }
+  const config: AxiosRequestConfig = {
+    url,
+    method,
+    params: cleanParams,
+    data: body,
+    headers: headerObject,
+    timeout: timeoutMs,
+    signal: signal ?? undefined,
+  };
 
   try {
-    const response = await fetch(url, {
-      ...customOptions,
-      headers: requestHeaders,
-      signal: controller.signal,
-    });
-
+    const response = await http.request<T>(config);
+    return response.data;
+  } catch (error: unknown) {
     // ==================================================
     // HANDLE UNAUTHORIZED
     // ==================================================
 
-    if (response.status === 401 && !isLoginEndpoint) {
-      // AuthStore bertanggung jawab menangani sesi dari /auth/me.
-      // Endpoint lainnya tetap menggunakan mekanisme redirect global.
-      if (!isAuthMeEndpoint) {
-        clearStoredSession();
+    if (
+      axios.isAxiosError<ErrorBody>(error) &&
+      error.response?.status === 401 &&
+      !isLoginEndpoint
+    ) {
+      const code = error.response.data?.code;
 
-        if (
-          typeof window !== "undefined" &&
-          window.location.pathname !== "/login"
-        ) {
+      // Access token kedaluwarsa: refresh lalu ulangi request satu kali.
+      if (code === "TOKEN_EXPIRED" && !_retried) {
+        try {
+          await refreshSession();
+
+          // Pakai header asli tanpa Authorization lama
+          const retryHeaders = new Headers(headers);
+          retryHeaders.delete("Authorization");
+
+          return await apiRequest<T>(endpoint, {
+            ...options,
+            headers: retryHeaders,
+            _retried: true,
+          });
+        } catch (retryError) {
+          // Error selain 401 (mis. jaringan, 500) diteruskan apa adanya
+          if (!(retryError instanceof ApiError) || retryError.status !== 401) {
+            throw retryError;
+          }
+        }
+      }
+
+      // Sesi benar-benar tidak valid
+      clearStoredSession();
+
+      if (!isAuthMeEndpoint && typeof window !== "undefined") {
+        // Hapus cookie refresh token di server agar tidak terjadi loop redirect
+        await authHttp.post("/api/auth/logout").catch(() => {});
+
+        if (window.location.pathname !== "/login") {
           window.location.replace("/login?session_expired=true");
         }
       }
@@ -282,82 +406,17 @@ export async function apiRequest<T = unknown>(
       throw new ApiError(
         401,
         "Sesi login telah kedaluwarsa. Silakan login kembali.",
+        code,
       );
     }
 
-    // ==================================================
-    // PARSE RESPONSE
-    // ==================================================
-
-    const data: unknown = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorData =
-        data && typeof data === "object"
-          ? (data as {
-              message?: string;
-              error?: string | { message?: string };
-              code?: string;
-              errors?: ApiValidationError[];
-            })
-          : null;
-
-      const errorMessage =
-        errorData?.message ??
-        (typeof errorData?.error === "string"
-          ? errorData.error
-          : errorData?.error?.message) ??
-        `Terjadi kesalahan pada server (Status: ${response.status})`;
-
-      throw new ApiError(
-        response.status,
-        errorMessage,
-        errorData?.code,
-        errorData?.errors,
-      );
-    }
-
-    return data as T;
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-
-    if (timedOut) {
-      throw new ApiError(
-        0,
-        `Server tidak merespons dalam ${Math.round(timeoutMs / 1000)} detik.`,
-        "TIMEOUT",
-      );
-    }
-
-    const message = error instanceof Error ? error.message : "Tidak diketahui";
-
-    throw new ApiError(
-      0,
-      message || "Tidak dapat terhubung ke server backend PAM Tirta Kamuning.",
-    );
-  } finally {
-    clearTimeout(timer);
-    externalSignal?.removeEventListener("abort", onExternalAbort);
+    throw toApiError(error, timeoutMs);
   }
 }
 
 // ======================================================
 // API CLIENT
 // ======================================================
-
-function serializeBody(body: unknown): BodyInit | undefined {
-  if (body === undefined || body === null) {
-    return undefined;
-  }
-
-  if (typeof FormData !== "undefined" && body instanceof FormData) {
-    return body;
-  }
-
-  return JSON.stringify(body);
-}
 
 export const apiClient = {
   get: <T = unknown>(endpoint: string, params?: RequestOptions["params"]) =>
@@ -369,24 +428,24 @@ export const apiClient = {
   post: <T = unknown>(
     endpoint: string,
     body?: unknown,
-    options?: RequestInit,
+    options?: Omit<RequestOptions, "method" | "body">,
   ) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: "POST",
-      body: serializeBody(body),
+      body,
     }),
 
   put: <T = unknown>(endpoint: string, body?: unknown) =>
     apiRequest<T>(endpoint, {
       method: "PUT",
-      body: serializeBody(body),
+      body,
     }),
 
   patch: <T = unknown>(endpoint: string, body?: unknown) =>
     apiRequest<T>(endpoint, {
       method: "PATCH",
-      body: serializeBody(body),
+      body,
     }),
 
   delete: <T = unknown>(endpoint: string) =>

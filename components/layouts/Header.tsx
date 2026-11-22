@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PanelLeft, Menu } from "lucide-react";
-import { useRouter } from "next/navigation";
 
-import { authService, type UserProfile } from "@/services/authService";
+import { useAuthStore } from "@/lib/auth/auth-store";
 import HeaderUserInfo from "./header/HeaderUserInfo";
 import HeaderLogoutModal from "./header/HeaderLogoutModal";
 
@@ -19,35 +18,32 @@ export default function Header({
   openMobileSidebar,
   isCollapsed,
 }: HeaderProps) {
-  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-
-    setUser(currentUser);
-    setLoadingUser(false);
-  }, []);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = () => {
-    if (loadingUser || !user) return;
+    if (!user) return;
 
     setShowLogoutModal(true);
   };
 
   const handleCancelLogout = () => {
+    if (loggingOut) return;
+
     setShowLogoutModal(false);
   };
 
-  const handleConfirmLogout = () => {
-    if (!user) return;
+  const handleConfirmLogout = async () => {
+    if (!user || loggingOut) return;
 
+    setLoggingOut(true);
     setShowLogoutModal(false);
-    authService.clearSession();
-    router.replace("/login");
+
+    // Hapus cookie di server, kosongkan store, lalu redirect ke /login
+    await logout();
   };
 
   return (
@@ -87,7 +83,7 @@ export default function Header({
         {/* Informasi Pengguna */}
         <HeaderUserInfo
           user={user}
-          loadingUser={loadingUser}
+          loadingUser={!user}
           onLogout={handleLogout}
         />
       </header>
@@ -97,7 +93,7 @@ export default function Header({
         isOpen={showLogoutModal}
         displayName={user?.fullname || user?.username || "Pengguna"}
         onClose={handleCancelLogout}
-        onConfirm={handleConfirmLogout}
+        onConfirm={() => void handleConfirmLogout()}
       />
     </>
   );

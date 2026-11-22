@@ -3,14 +3,14 @@
 import { Suspense, useState } from "react";
 import Sidebar from "@/components/layouts/Sidebar";
 import Header from "@/components/layouts/Header";
-import { AuthGuard } from "@/components/providers/AuthGuard";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import PageSkeleton from "./PageSkeleton";
 
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard>
+    <AuthProvider>
       <AdminShell>{children}</AdminShell>
-    </AuthGuard>
+    </AuthProvider>
   );
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SESSION_COOKIE = "pdam_session";
+// Cookie httpOnly yang dibuat oleh Route Handler login/refresh
+const SESSION_COOKIE = "refresh_token";
 const PUBLIC_PATHS = ["/login"];
 const DEFAULT_AUTHENTICATED_PATH = "/dashboard";
 

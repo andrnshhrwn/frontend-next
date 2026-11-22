@@ -1,5 +1,5 @@
-const SESSION_COOKIE = "pdam_session";
+import { redirect } from "next/navigation";
 
 export default function RootPage() {
-  return null;
+  redirect("/login");
 }

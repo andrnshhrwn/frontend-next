@@ -1,12 +1,15 @@
 import {
-  apiClient,
   apiRequest,
+  ApiError,
+  authHttp,
+  toApiError,
   getAccessToken,
-  setAccessToken,
-  removeAccessToken,
   getStoredUser,
+  setAccessToken,
   setStoredUser,
+  removeAccessToken,
   removeStoredUser,
+  refreshSession,
   type StoredUser,
 } from "@/services/apiClient";
 
@@ -23,11 +26,6 @@ interface ApiResponse<T> {
   data: T;
 }
 
-interface LoginResponseData {
-  token: string;
-  user: UserProfile;
-}
-
 export interface LoginResult {
   token: string;
   user: UserProfile;
@@ -39,28 +37,31 @@ export interface LoginResult {
 
 export const authService = {
   /**
-   * Login menggunakan username dan password.
+   * Login lewat Route Handler Next, supaya refresh token
+   * disimpan di cookie httpOnly.
    */
   async login(
     username: string,
     password: string,
     rememberMe = false,
   ): Promise<LoginResult> {
-    const response = await apiClient.post<ApiResponse<LoginResponseData>>(
-      "/auth/login",
-      {
-        username,
-        password,
-      },
-    );
+    let result: LoginResult | undefined;
 
-    const result = response.data;
-
-    if (!result?.token || !result.user) {
-      throw new Error("Respons login dari server tidak valid.");
+    try {
+      const res = await authHttp.post<{ data: LoginResult }>(
+        "/api/auth/login",
+        { username, password, rememberMe },
+      );
+      result = res.data?.data;
+    } catch (error) {
+      throw toApiError(error, 10000);
     }
 
-    setAccessToken(result.token, rememberMe);
+    if (!result?.token || !result.user) {
+      throw new ApiError(500, "Respons login dari server tidak valid.");
+    }
+
+    setAccessToken(result.token);
     setStoredUser(result.user, rememberMe);
 
     return result;
@@ -69,56 +70,47 @@ export const authService = {
   /**
    * Mengambil profil pengguna dari backend.
    */
-  async getMe(token?: string): Promise<UserProfile> {
-    const response = await apiRequest<ApiResponse<UserProfile>>("/auth/me", {
-      method: "GET",
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
-        : {},
-    });
+  async getMe(): Promise<UserProfile> {
+    if (!getAccessToken()) {
+      return this.restoreSession();
+    }
 
+    const response = await apiRequest<ApiResponse<UserProfile>>("/auth/me");
     return response.data;
   },
 
   /**
-   * Mengambil access token.
+   * Memulihkan sesi dari cookie refresh token (dipakai saat reload).
    */
+  async restoreSession(): Promise<UserProfile> {
+    const { user } = await refreshSession();
+    return user;
+  },
+
   getToken(): string | null {
     return getAccessToken();
   },
 
-  /**
-   * Mengambil profil pengguna lokal.
-   */
   getCurrentUser(): UserProfile | null {
     return getStoredUser();
   },
 
   /**
-   * Memeriksa keberadaan sesi lokal.
-   * Bukan validasi token ke server.
+   * Memeriksa profil lokal saja. Bukan validasi ke server.
    */
   hasSession(): boolean {
-    return Boolean(this.getToken() && this.getCurrentUser());
+    return Boolean(this.getCurrentUser());
   },
 
   /**
-   * Memvalidasi token melalui backend.
+   * Memvalidasi sesi melalui backend.
    */
   async validateSession(): Promise<UserProfile> {
-    const token = this.getToken();
-
-    if (!token) {
-      throw new Error("Access token tidak ditemukan.");
-    }
-
-    return this.getMe(token);
+    return this.getMe();
   },
 
   /**
-   * Menghapus seluruh data sesi.
+   * Menghapus data sesi di sisi client.
    */
   clearSession(): void {
     removeAccessToken();
@@ -126,9 +118,10 @@ export const authService = {
   },
 
   /**
-   * Logout lokal.
+   * Logout: cabut refresh token di server, hapus cookie, bersihkan client.
    */
   async logout(): Promise<void> {
+    await authHttp.post("/api/auth/logout").catch(() => {});
     this.clearSession();
   },
 };

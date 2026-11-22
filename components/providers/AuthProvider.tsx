@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { UserRole } from "@/services/authService";
 import { useAuthStore } from "@/lib/auth/auth-store";
+import PageSkeleton from "../layouts/PageSkeleton";
 
-function FullScreenMessage({ text }: { text: string }) {
-  return (
-    <div className="fixed inset-0 z-[100] flex min-h-screen items-center justify-center bg-pdam-bg">
-      <p className="text-sm opacity-70">{text}</p>
-    </div>
-  );
+function isPageReload(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const navEntries = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
+
+  return navEntries.length > 0 && navEntries[0]?.type === "reload";
 }
 
-export function AuthGuard({
+export function AuthProvider({
   children,
   roles,
 }: {
@@ -22,20 +25,23 @@ export function AuthGuard({
   roles?: UserRole[];
 }) {
   const router = useRouter();
+  const [isReload, setIsReload] = useState(false);
 
   const status = useAuthStore((s) => s.status);
+  const userRole = useAuthStore((s) => s.user?.role);
   const initialize = useAuthStore((s) => s.initialize);
   const retry = useAuthStore((s) => s.retry);
 
-  const hasAccess = useAuthStore((s) =>
-    roles ? s.user !== null && roles.includes(s.user.role) : true,
-  );
+  const hasAccess = roles
+    ? userRole !== undefined && roles.includes(userRole)
+    : true;
 
   const isChecking = status === "idle" || status === "checking";
   const isAuthenticated = status === "authenticated";
   const canRenderContent = isAuthenticated && hasAccess;
 
   useEffect(() => {
+    setIsReload(isPageReload());
     void initialize();
   }, [initialize]);
 
@@ -54,7 +60,20 @@ export function AuthGuard({
         {children}
       </div>
 
-      {isChecking && <FullScreenMessage text="Memeriksa sesi Anda..." />}
+      {isChecking && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label="Memeriksa sesi Anda..."
+          className="fixed inset-0 z-[100] flex min-h-screen items-center justify-center overflow-auto bg-pdam-bg p-4"
+        >
+          {isReload ? (
+            <p className="text-sm opacity-70">Memeriksa sesi Anda...</p>
+          ) : (
+            <PageSkeleton />
+          )}
+        </div>
+      )}
 
       {status === "error" && (
         <div className="fixed inset-0 z-[100] flex min-h-screen flex-col items-center justify-center gap-3 bg-pdam-bg">
@@ -70,14 +89,6 @@ export function AuthGuard({
             Coba lagi
           </button>
         </div>
-      )}
-
-      {status === "unauthenticated" && (
-        <FullScreenMessage text="Mengalihkan..." />
-      )}
-
-      {isAuthenticated && !hasAccess && (
-        <FullScreenMessage text="Anda tidak memiliki akses ke halaman ini." />
       )}
     </>
   );
