@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { REFRESH_COOKIE, REMEMBER_COOKIE } from "@/lib/auth-cookie";
+import { REFRESH_COOKIE, clearAuthCookies } from "@/lib/auth-cookie";
 import { backend } from "@/lib/backend-client";
 
 export async function POST() {
@@ -14,7 +14,6 @@ export async function POST() {
   }
 
   const out = NextResponse.json({ data: null });
-  out.cookies.delete(REFRESH_COOKIE);
-  out.cookies.delete(REMEMBER_COOKIE);
+  clearAuthCookies(out);
   return out;
 }

@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 import {
   REFRESH_COOKIE,
   REMEMBER_COOKIE,
-  cookieOptions,
+  clearAuthCookies,
+  setAuthCookies,
 } from "@/lib/auth-cookie";
-import { backend, isOk } from "@/lib/backend-client";
+import { refreshTokens } from "@/lib/server-auth";
 
 export async function POST() {
   const store = await cookies();
@@ -20,30 +21,21 @@ export async function POST() {
   }
 
   try {
-    const res = await backend.post("/auth/refresh", {
-      refresh_token: current,
-    });
+    const tokens = await refreshTokens(current);
 
-    if (!isOk(res.status)) {
-      const out = NextResponse.json(res.data, { status: res.status });
-      // Hapus cookie rusak agar proxy tidak memicu loop redirect
-      out.cookies.delete(REFRESH_COOKIE);
-      out.cookies.delete(REMEMBER_COOKIE);
+    if (!tokens) {
+      const out = NextResponse.json(
+        { status: "error", code: "SESSION_EXPIRED", message: "Sesi berakhir." },
+        { status: 401 },
+      );
+      clearAuthCookies(out);
       return out;
     }
 
-    const { token, refresh_token, user } = res.data.data;
-
-    const out = NextResponse.json({ data: { token, user } });
-    out.cookies.set(REFRESH_COOKIE, refresh_token, cookieOptions(remember));
-    out.cookies.set(
-      REMEMBER_COOKIE,
-      remember ? "1" : "0",
-      cookieOptions(remember),
-    );
+    const out = NextResponse.json({ data: { user: tokens.user } });
+    setAuthCookies(out, tokens, remember);
     return out;
   } catch {
-    // Backend mati: cookie tidak dihapus, user bisa mencoba lagi nanti
     return NextResponse.json(
       {
         status: "error",

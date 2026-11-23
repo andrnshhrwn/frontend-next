@@ -16,7 +16,7 @@ import {
   PengirimanFormModal,
   PengirimanWmStats,
   StokUnitTab,
-} from "@/components/modules/distribusi-water-meter";
+} from "@/components/modules/pengiriman-wm";
 
 import { usePengirimanWmData } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmData";
 import { usePengirimanWmStats } from "@/hooks/modules/distribusi-water-meter/usePengirimanWmStats";

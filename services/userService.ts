@@ -1,6 +1,6 @@
 import { apiClient } from "@/services/apiClient";
 
-export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi";
+export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi" | "pimpinan";
 
 export interface User {
   id_user: string;

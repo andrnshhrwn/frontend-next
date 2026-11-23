@@ -14,6 +14,13 @@ import {
 } from "@/utils/user.utils";
 import { useHasRole } from "@/lib/auth/auth-store";
 
+/**
+ * Hanya Admin Cabang dan Teknisi yang terikat pada sebuah unit.
+ * Admin Pusat dan Pimpinan bersifat lintas unit sehingga id_unit = null.
+ */
+const roleNeedsUnit = (role: UserRole) =>
+  role === "admin_cabang" || role === "teknisi";
+
 function Modal({
   title,
   subtitle,
@@ -77,6 +84,8 @@ export default function UserFormModal({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const unitRequired = roleNeedsUnit(role);
+
   const handleClose = () => {
     if (loading) return;
     onClose();
@@ -132,8 +141,9 @@ export default function UserFormModal({
       return;
     }
 
-    // Unit hanya dapat ditentukan oleh Admin Pusat.
-    if (isAdminPusat && role !== "admin_pusat") {
+    // Unit hanya dapat ditentukan oleh Admin Pusat,
+    // dan hanya wajib untuk peran yang terikat unit.
+    if (isAdminPusat && unitRequired) {
       if (!idUnit) {
         setError("Unit wajib dipilih untuk peran ini.");
         return;
@@ -154,7 +164,7 @@ export default function UserFormModal({
         fullname: normalizedFullname,
         username: normalizedUsername,
         role,
-        id_unit: role === "admin_pusat" ? null : idUnit,
+        id_unit: unitRequired ? idUnit : null,
       };
     } else if (isAdminCabang) {
       // Hook hanya mengambil fullname, username, dan password
@@ -172,7 +182,7 @@ export default function UserFormModal({
         username: normalizedUsername,
         password,
         role,
-        id_unit: role === "admin_pusat" ? null : idUnit,
+        id_unit: unitRequired ? idUnit : null,
       };
     }
 
@@ -295,7 +305,8 @@ export default function UserFormModal({
 
                 setRole(nextRole);
 
-                if (nextRole === "admin_pusat") {
+                // Admin Pusat & Pimpinan tidak memakai unit.
+                if (!roleNeedsUnit(nextRole)) {
                   setIdUnit("");
                 }
               }}
@@ -304,6 +315,7 @@ export default function UserFormModal({
               <option value="admin_pusat">Admin Pusat</option>
               <option value="admin_cabang">Admin Cabang</option>
               <option value="teknisi">Teknisi</option>
+              <option value="pimpinan">Pimpinan</option>
             </select>
           </div>
         )}
@@ -313,14 +325,12 @@ export default function UserFormModal({
             <label className={labelCls}>Unit</label>
             <select
               className={selectCls}
-              value={idUnit}
-              disabled={loading || role === "admin_pusat"}
+              value={unitRequired ? idUnit : ""}
+              disabled={loading || !unitRequired}
               onChange={(e) => setIdUnit(e.target.value)}
             >
               <option value="">
-                {role === "admin_pusat"
-                  ? "Tidak menggunakan unit"
-                  : "Pilih unit"}
+                {unitRequired ? "Pilih unit" : "Tidak menggunakan unit"}
               </option>
 
               {units.map((unit) => (

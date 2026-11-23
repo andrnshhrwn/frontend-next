@@ -65,7 +65,7 @@ export function AuthProvider({
           role="status"
           aria-live="polite"
           aria-label="Memeriksa sesi Anda..."
-          className="fixed inset-0 z-[100] flex min-h-screen items-center justify-center overflow-auto bg-pdam-bg p-4"
+          className="fixed inset-0 z-100 flex min-h-screen items-center justify-center overflow-auto bg-pdam-bg p-4"
         >
           {isReload ? (
             <p className="text-sm opacity-70">Memeriksa sesi Anda...</p>
@@ -76,7 +76,7 @@ export function AuthProvider({
       )}
 
       {status === "error" && (
-        <div className="fixed inset-0 z-[100] flex min-h-screen flex-col items-center justify-center gap-3 bg-pdam-bg">
+        <div className="fixed inset-0 z-100 flex min-h-screen flex-col items-center justify-center gap-3 bg-pdam-bg">
           <p className="text-sm">
             Gagal memverifikasi sesi. Periksa koneksi Anda.
           </p>

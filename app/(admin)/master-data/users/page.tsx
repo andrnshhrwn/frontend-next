@@ -1,14 +1,12 @@
 "use client";
 
 import ChangePasswordModal from "@/components/modules/users/ChangePasswordModal";
-import RolePermissionsView from "@/components/modules/users/RolePermissionsView";
 import UserFilters from "@/components/modules/users/UserFilters";
 import UserFormModal from "@/components/modules/users/UserFormModal";
 import UserHeader from "@/components/modules/users/UserHeader";
 import UserSecurityPolicy from "@/components/modules/users/UserSecurityPolicy";
 import UserStats from "@/components/modules/users/UserStats";
 import UserTable from "@/components/modules/users/UserTable";
-import UserTabs from "@/components/modules/users/UserTabs";
 import { useUser } from "@/hooks/modules/users/useUser";
 import { AlertCircle } from "lucide-react";
 
@@ -57,15 +55,6 @@ export default function DataUserPage() {
         isAdminCabang={isAdminCabang}
       />
 
-      <UserTabs
-        activeTab={activeTab}
-        totalUsers={users.length}
-        refreshing={refreshing}
-        isAdminPusat={isAdminPusat}
-        onTabChange={setActiveTab}
-        onRefresh={() => void loadData(true)}
-      />
-
       {!loading && (
         <UserStats
           totalUsers={users.length}
@@ -94,31 +83,25 @@ export default function DataUserPage() {
         </div>
       )}
 
-      {isAdminPusat && activeTab === "role" ? (
-        <RolePermissionsView />
-      ) : (
-        <>
-          <UserFilters
-            units={units}
-            roleFilter={roleFilter}
-            unitFilter={unitFilter}
-            search={search}
-            isAdminPusat={isAdminPusat}
-            onRoleChange={setRoleFilter}
-            onUnitChange={setUnitFilter}
-            onSearchChange={setSearch}
-          />
+      <UserFilters
+        units={units}
+        roleFilter={roleFilter}
+        unitFilter={unitFilter}
+        search={search}
+        isAdminPusat={isAdminPusat}
+        onRoleChange={setRoleFilter}
+        onUnitChange={setUnitFilter}
+        onSearchChange={setSearch}
+      />
 
-          <UserTable
-            users={filteredUsers}
-            totalUsers={users.length}
-            loading={loading}
-            canManageUsers={isAdminPusat}
-            onEdit={setEditingUser}
-            onChangePassword={setPasswordUser}
-          />
-        </>
-      )}
+      <UserTable
+        users={filteredUsers}
+        totalUsers={users.length}
+        loading={loading}
+        canManageUsers={isAdminPusat}
+        onEdit={setEditingUser}
+        onChangePassword={setPasswordUser}
+      />
 
       <UserSecurityPolicy
         isAdminPusat={isAdminPusat}

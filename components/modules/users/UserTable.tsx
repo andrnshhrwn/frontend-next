@@ -94,7 +94,7 @@ export default function UserTable({
                   className="hover:bg-pdam-bg/60 transition-colors"
                 >
                   <td className="py-4 pl-5">
-                    <span className="font-bold text-pdam-navy block">
+                    <span className="font-bold text-pdam-navy block capitalize">
                       {user.fullname}
                     </span>
                   </td>

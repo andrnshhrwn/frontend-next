@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  REFRESH_COOKIE,
-  REMEMBER_COOKIE,
-  cookieOptions,
-} from "@/lib/auth-cookie";
+import { setAuthCookies } from "@/lib/auth-cookie";
 import { backend, isOk } from "@/lib/backend-client";
 
 export async function POST(req: Request) {
@@ -21,15 +17,10 @@ export async function POST(req: Request) {
     }
 
     const { token, refresh_token, user } = res.data.data;
-    const remember = Boolean(rememberMe);
 
-    const out = NextResponse.json({ data: { token, user } });
-    out.cookies.set(REFRESH_COOKIE, refresh_token, cookieOptions(remember));
-    out.cookies.set(
-      REMEMBER_COOKIE,
-      remember ? "1" : "0",
-      cookieOptions(remember),
-    );
+    // Token tidak dikirim ke browser, hanya data user
+    const out = NextResponse.json({ data: { user } });
+    setAuthCookies(out, { token, refresh_token }, Boolean(rememberMe));
     return out;
   } catch {
     return NextResponse.json(

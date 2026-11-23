@@ -3,13 +3,9 @@ import {
   ApiError,
   authHttp,
   toApiError,
-  getAccessToken,
   getStoredUser,
-  setAccessToken,
   setStoredUser,
-  removeAccessToken,
   removeStoredUser,
-  refreshSession,
   type StoredUser,
 } from "@/services/apiClient";
 
@@ -27,7 +23,6 @@ interface ApiResponse<T> {
 }
 
 export interface LoginResult {
-  token: string;
   user: UserProfile;
 }
 
@@ -37,58 +32,41 @@ export interface LoginResult {
 
 export const authService = {
   /**
-   * Login lewat Route Handler Next, supaya refresh token
-   * disimpan di cookie httpOnly.
+   * Login lewat Route Handler Next. Token disimpan sebagai cookie httpOnly,
+   * sehingga response hanya berisi data user.
    */
   async login(
     username: string,
     password: string,
     rememberMe = false,
   ): Promise<LoginResult> {
-    let result: LoginResult | undefined;
+    let user: UserProfile | undefined;
 
     try {
       const res = await authHttp.post<{ data: LoginResult }>(
         "/api/auth/login",
         { username, password, rememberMe },
       );
-      result = res.data?.data;
+      user = res.data?.data?.user;
     } catch (error) {
       throw toApiError(error, 10000);
     }
 
-    if (!result?.token || !result.user) {
+    if (!user) {
       throw new ApiError(500, "Respons login dari server tidak valid.");
     }
 
-    setAccessToken(result.token);
-    setStoredUser(result.user, rememberMe);
+    setStoredUser(user, rememberMe);
 
-    return result;
+    return { user };
   },
 
   /**
-   * Mengambil profil pengguna dari backend.
+   * Mengambil profil pengguna dari backend (lewat proxy).
    */
   async getMe(): Promise<UserProfile> {
-    if (!getAccessToken()) {
-      return this.restoreSession();
-    }
-
     const response = await apiRequest<ApiResponse<UserProfile>>("/auth/me");
     return response.data;
-  },
-
-  /**
-   * Memulihkan sesi dari cookie refresh token (dipakai saat reload).
-   */
-  async restoreSession(): Promise<UserProfile> {
-    const { user } = await refreshSession();
-    return user;
-  },
-
-  getToken(): string | null {
-    return getAccessToken();
   },
 
   getCurrentUser(): UserProfile | null {
@@ -113,7 +91,6 @@ export const authService = {
    * Menghapus data sesi di sisi client.
    */
   clearSession(): void {
-    removeAccessToken();
     removeStoredUser();
   },
 

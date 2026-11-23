@@ -10,12 +10,14 @@ export const roleLabels: Record<UserRole, string> = {
   admin_pusat: "Admin Pusat",
   admin_cabang: "Admin Cabang",
   teknisi: "Teknisi",
+  pimpinan: "Pimpinan"
 };
 
 export const roleClasses: Record<UserRole, string> = {
   admin_pusat: "border-pdam-navy/25 bg-pdam-navy/10 text-pdam-navy",
   admin_cabang: "border-pdam-primary/25 bg-pdam-primary/10 text-pdam-primary",
   teknisi: "border-amber-500/30 bg-amber-500/10 text-amber-700",
+  pimpinan: "border-emerald-400/25 bg-emerald-400/10 text-pdam-navy"
 };
 
 export const labelCls =

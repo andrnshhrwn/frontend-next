@@ -4,7 +4,7 @@ import { apiClient, API_BASE_URL } from "./apiClient";
 // ENUMS
 // ======================================================
 
-export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi";
+export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi" | "pimpinan";
 
 export type StatusValidasi = "menunggu" | "disetujui" | "ditolak";
 

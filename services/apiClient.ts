@@ -1,8 +1,10 @@
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
+// Hanya untuk URL aset (mis. gambar /uploads). Request data lewat proxy.
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
+const PROXY_BASE_URL = "/api/proxy";
 const USER_KEY = "pdam_user";
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -10,7 +12,7 @@ const DEFAULT_TIMEOUT_MS = 10000;
 // TYPES
 // ======================================================
 
-export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi";
+export type UserRole = "admin_pusat" | "admin_cabang" | "teknisi" | "pimpinan";
 
 export interface StoredUser {
   id_user: string;
@@ -33,15 +35,9 @@ export interface RequestOptions {
   body?: unknown;
   signal?: AbortSignal | null;
   timeoutMs?: number;
-  _retried?: boolean;
 }
 
 type StorageType = "local" | "session";
-
-export interface RefreshResult {
-  token: string;
-  user: StoredUser;
-}
 
 interface ErrorBody {
   message?: string;
@@ -78,20 +74,20 @@ export class ApiError extends Error {
 // AXIOS INSTANCES
 // ======================================================
 
-// Untuk data: langsung ke backend Express
+// Untuk data: lewat proxy Next (cookie httpOnly dibaca di server)
 const http = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: PROXY_BASE_URL,
   timeout: DEFAULT_TIMEOUT_MS,
 });
 
-// Untuk auth: ke Route Handler Next (same-origin, membawa cookie httpOnly)
+// Untuk auth: Route Handler Next (login, logout, refresh)
 export const authHttp = axios.create({
   baseURL: "",
   timeout: DEFAULT_TIMEOUT_MS,
 });
 
 // ======================================================
-// STORAGE HELPERS (hanya untuk profil user, bukan token)
+// STORAGE HELPERS (hanya profil user, bukan token)
 // ======================================================
 
 function getStorage(type: StorageType): Storage | null {
@@ -132,21 +128,38 @@ function removeStoredValue(key: string): void {
 }
 
 // ======================================================
-// ACCESS TOKEN (disimpan di memori, bukan storage)
+// USER STORAGE
 // ======================================================
 
-let accessToken: string | null = null;
+export function getStoredUser(): StoredUser | null {
+  if (typeof window === "undefined") return null;
 
-export function getAccessToken(): string | null {
-  return accessToken;
+  const raw = getStoredValue(USER_KEY);
+
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as StoredUser;
+  } catch {
+    removeStoredUser();
+    return null;
+  }
 }
 
-export function setAccessToken(token: string | null): void {
-  accessToken = token;
+export function setStoredUser(user: StoredUser, rememberMe: boolean): void {
+  setStoredValue(USER_KEY, JSON.stringify(user), rememberMe);
 }
 
-export function removeAccessToken(): void {
-  accessToken = null;
+export function removeStoredUser(): void {
+  removeStoredValue(USER_KEY);
+}
+
+// ======================================================
+// SESSION MANAGEMENT
+// ======================================================
+
+export function clearStoredSession(): void {
+  removeStoredUser();
 }
 
 // ======================================================
@@ -205,73 +218,6 @@ export function toApiError(error: unknown, timeoutMs: number): ApiError {
 }
 
 // ======================================================
-// REFRESH SESSION
-// ======================================================
-
-// Single-flight: banyak request bersamaan -> refresh hanya sekali.
-// Wajib, karena refresh token berotasi di backend.
-let refreshPromise: Promise<RefreshResult> | null = null;
-
-export function refreshSession(): Promise<RefreshResult> {
-  refreshPromise ??= authHttp
-    .post<{ data?: RefreshResult }>("/api/auth/refresh")
-    .then((res) => {
-      const payload = res.data?.data;
-
-      if (!payload?.token || !payload?.user) {
-        throw new ApiError(401, "Sesi refresh tidak valid.");
-      }
-
-      accessToken = payload.token;
-      return { token: payload.token, user: payload.user };
-    })
-    .catch((error: unknown) => {
-      throw toApiError(error, DEFAULT_TIMEOUT_MS);
-    })
-    .finally(() => {
-      refreshPromise = null;
-    });
-
-  return refreshPromise;
-}
-
-// ======================================================
-// USER STORAGE
-// ======================================================
-
-export function getStoredUser(): StoredUser | null {
-  if (typeof window === "undefined") return null;
-
-  const raw = getStoredValue(USER_KEY);
-
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as StoredUser;
-  } catch {
-    removeStoredUser();
-    return null;
-  }
-}
-
-export function setStoredUser(user: StoredUser, rememberMe: boolean): void {
-  setStoredValue(USER_KEY, JSON.stringify(user), rememberMe);
-}
-
-export function removeStoredUser(): void {
-  removeStoredValue(USER_KEY);
-}
-
-// ======================================================
-// SESSION MANAGEMENT
-// ======================================================
-
-export function clearStoredSession(): void {
-  removeAccessToken();
-  removeStoredUser();
-}
-
-// ======================================================
 // API REQUEST
 // ======================================================
 
@@ -286,17 +232,14 @@ export async function apiRequest<T = unknown>(
     body,
     signal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
-    _retried = false,
   } = options;
 
   const cleanEndpoint = endpoint.split("?")[0];
   const url = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-  const isLoginEndpoint = /\/auth\/login\/?$/.test(cleanEndpoint);
   const isAuthMeEndpoint = /\/auth\/me\/?$/.test(cleanEndpoint);
 
   const requestHeaders = new Headers(headers);
-  requestHeaders.set("X-Client-Platform", "web");
 
   // Body string tanpa Content-Type dianggap JSON.
   // Objek dan FormData ditangani otomatis oleh axios.
@@ -304,31 +247,10 @@ export async function apiRequest<T = unknown>(
     requestHeaders.set("Content-Type", "application/json");
   }
 
-  // ----------------------------------------------------
-  // PULIHKAN SESI (token memori kosong, mis. setelah reload)
-  // ----------------------------------------------------
-
-  if (
-    typeof window !== "undefined" &&
-    !getAccessToken() &&
-    !isLoginEndpoint &&
-    !requestHeaders.has("Authorization")
-  ) {
-    try {
-      await refreshSession();
-    } catch (err) {
-      if (isAuthMeEndpoint && err instanceof ApiError && err.status === 401) {
-        clearStoredSession();
-        throw err;
-      }
-    }
-  }
-
-  const token = getAccessToken();
-
-  if (token && !requestHeaders.has("Authorization")) {
-    requestHeaders.set("Authorization", `Bearer ${token}`);
-  }
+  const headerObject: Record<string, string> = {};
+  requestHeaders.forEach((value, key) => {
+    headerObject[key] = value;
+  });
 
   // Parameter kosong tidak ikut dikirim
   const cleanParams = params
@@ -338,11 +260,6 @@ export async function apiRequest<T = unknown>(
         ),
       )
     : undefined;
-
-  const headerObject: Record<string, string> = {};
-  requestHeaders.forEach((value, key) => {
-    headerObject[key] = value;
-  });
 
   const config: AxiosRequestConfig = {
     url,
@@ -358,44 +275,16 @@ export async function apiRequest<T = unknown>(
     const response = await http.request<T>(config);
     return response.data;
   } catch (error: unknown) {
-    // ==================================================
-    // HANDLE UNAUTHORIZED
-    // ==================================================
-
+    // Refresh dan retry sudah ditangani proxy di server.
+    // 401 di sini berarti sesi memang sudah tidak valid.
     if (
       axios.isAxiosError<ErrorBody>(error) &&
-      error.response?.status === 401 &&
-      !isLoginEndpoint
+      error.response?.status === 401
     ) {
-      const code = error.response.data?.code;
-
-      // Access token kedaluwarsa: refresh lalu ulangi request satu kali.
-      if (code === "TOKEN_EXPIRED" && !_retried) {
-        try {
-          await refreshSession();
-
-          // Pakai header asli tanpa Authorization lama
-          const retryHeaders = new Headers(headers);
-          retryHeaders.delete("Authorization");
-
-          return await apiRequest<T>(endpoint, {
-            ...options,
-            headers: retryHeaders,
-            _retried: true,
-          });
-        } catch (retryError) {
-          // Error selain 401 (mis. jaringan, 500) diteruskan apa adanya
-          if (!(retryError instanceof ApiError) || retryError.status !== 401) {
-            throw retryError;
-          }
-        }
-      }
-
-      // Sesi benar-benar tidak valid
       clearStoredSession();
 
       if (!isAuthMeEndpoint && typeof window !== "undefined") {
-        // Hapus cookie refresh token di server agar tidak terjadi loop redirect
+        // Pastikan cookie dihapus agar tidak terjadi loop redirect
         await authHttp.post("/api/auth/logout").catch(() => {});
 
         if (window.location.pathname !== "/login") {
@@ -406,7 +295,7 @@ export async function apiRequest<T = unknown>(
       throw new ApiError(
         401,
         "Sesi login telah kedaluwarsa. Silakan login kembali.",
-        code,
+        error.response.data?.code,
       );
     }
 

@@ -13,13 +13,12 @@ function getRoleLabel(role: UserRole): string {
   switch (role) {
     case "admin_pusat":
       return "Akses: Seluruh Unit";
-
     case "admin_cabang":
       return "Akses: Unit Cabang";
-
     case "teknisi":
       return "Akses: Penugasan Saya";
-
+    case "pimpinan":
+      return "Akses: Pimpinan (Lihat Saja)";
     default:
       return "Akses Pengguna";
   }
@@ -29,13 +28,12 @@ function getRoleStyle(role: UserRole): string {
   switch (role) {
     case "admin_pusat":
       return "bg-pdam-primary/10 text-pdam-primary";
-
     case "admin_cabang":
       return "bg-pdam-navy/10 text-pdam-navy";
-
     case "teknisi":
       return "bg-amber-50 text-amber-700";
-
+    case "pimpinan":
+      return "bg-emerald-50 text-emerald-700";
     default:
       return "bg-slate-100 text-slate-600";
   }
@@ -45,13 +43,12 @@ function getRoleIndicatorStyle(role: UserRole): string {
   switch (role) {
     case "admin_pusat":
       return "bg-pdam-primary";
-
     case "admin_cabang":
       return "bg-pdam-navy";
-
     case "teknisi":
       return "bg-amber-500";
-
+    case "pimpinan":
+      return "bg-emerald-500";
     default:
       return "bg-slate-400";
   }

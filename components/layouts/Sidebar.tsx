@@ -2,11 +2,10 @@
 
 import { usePathname } from "next/navigation";
 
-import { useAuthStore } from "@/lib/auth/auth-store";
-
+import { useAuthStore, useRoleChecker } from "@/lib/auth/auth-store";
 import SidebarHeader from "./sidebar/SidebarHeader";
-import SidebarNavigation from "./sidebar/SidebarNavigation";
 import SidebarUserRole from "./sidebar/SidebarUserRole";
+import SidebarNavigation from "./sidebar/SidebarNavigation";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -20,79 +19,31 @@ export default function Sidebar({
   closeMobileSidebar,
 }: SidebarProps) {
   const pathname = usePathname();
-
-  // Mengambil data autentikasi dari Zustand.
-  const user = useAuthStore((state) => state.user);
-  const authStatus = useAuthStore((state) => state.status);
-
-  const authLoading = authStatus === "idle" || authStatus === "checking";
-
-  // Pengganti hasRole dari AuthProvider.
-  const hasRole = (...roles: string[]) =>
-    user !== null && roles.includes(user.role);
+  const user = useAuthStore((s) => s.user);
+  const hasRole = useRoleChecker();
 
   return (
     <aside
-      className={`z-30 flex h-full shrink-0 flex-col justify-between overflow-x-hidden border-r border-slate-200/90 bg-white transition-all duration-300
-        ${isCollapsed ? "w-20" : "w-64"}`}
+      className={`flex h-full w-72 max-w-[85vw] flex-col border-r border-slate-200/90 bg-white shadow-xl transition-[width] duration-200 ease-out lg:shadow-none ${
+        isCollapsed ? "lg:w-19" : "lg:w-64"
+      }`}
     >
-      <div className="w-full">
-        <SidebarHeader
+      <SidebarHeader
+        isCollapsed={isCollapsed}
+        toggleSidebar={toggleSidebar}
+        closeMobileSidebar={closeMobileSidebar}
+      />
+
+      <SidebarUserRole user={user} isCollapsed={isCollapsed} />
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <SidebarNavigation
+          pathname={pathname}
           isCollapsed={isCollapsed}
-          toggleSidebar={toggleSidebar}
+          hasRole={hasRole}
           closeMobileSidebar={closeMobileSidebar}
         />
-
-        <SidebarUserRole user={user} isCollapsed={isCollapsed} />
-
-        {authLoading ? (
-          <div className="space-y-2 p-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-9 animate-pulse rounded-lg bg-slate-200/70"
-              />
-            ))}
-          </div>
-        ) : (
-          <SidebarNavigation
-            pathname={pathname}
-            isCollapsed={isCollapsed}
-            hasRole={hasRole}
-            closeMobileSidebar={closeMobileSidebar}
-          />
-        )}
       </div>
-
-      {isCollapsed && (
-        <div className="hidden justify-center border-t border-slate-100 p-4 lg:flex">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="btn btn-ghost btn-sm btn-square text-slate-500 hover:bg-pdam-bg hover:text-pdam-navy"
-            title="Perluas sidebar"
-            aria-label="Perluas sidebar"
-          >
-            <span className="sr-only">Perluas sidebar</span>
-
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M9 3v18" />
-              <path d="m14 9 3 3-3 3" />
-            </svg>
-          </button>
-        </div>
-      )}
     </aside>
   );
 }
