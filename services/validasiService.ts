@@ -131,6 +131,9 @@ const BASE_ENDPOINT = "/validasi";
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_STORAGE_BUCKET = "water_meter";
+
 // ======================================================
 // IMAGE URL HELPER
 // ======================================================
@@ -140,11 +143,34 @@ export function getValidasiImageUrl(
 ): string | null {
   if (!path) return null;
 
-  if (/^https?:\/\//i.test(path)) {
-    return path;
+  const cleanPath = path.trim();
+
+  if (!cleanPath) return null;
+
+  // URL lengkap: gunakan langsung.
+  if (/^https?:\/\//i.test(cleanPath)) {
+    return cleanPath;
   }
 
-  return `${BACKEND_ORIGIN}/${path.replace(/^\/+/, "")}`;
+  // Path foto lama yang masih menggunakan penyimpanan lokal.
+  if (cleanPath.startsWith("/uploads/")) {
+    if (cleanPath.endsWith("/undefined")) return null;
+
+    return `${BACKEND_ORIGIN}${cleanPath}`;
+  }
+
+  // Path object Supabase Storage.
+  if (!SUPABASE_URL) {
+    console.error("NEXT_PUBLIC_SUPABASE_URL belum dikonfigurasi.");
+    return null;
+  }
+
+  const normalizedPath = cleanPath.replace(/^\/+/, "");
+
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${normalizedPath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
 }
 
 // ======================================================

@@ -6,7 +6,7 @@ export const API_BASE_URL =
 
 const PROXY_BASE_URL = "/api/proxy";
 const USER_KEY = "pdam_user";
-const DEFAULT_TIMEOUT_MS = 10000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 // ======================================================
 // TYPES
@@ -193,8 +193,8 @@ export function toApiError(error: unknown, timeoutMs: number): ApiError {
     if (error.code === AxiosError.ECONNABORTED || error.code === "ETIMEDOUT") {
       return new ApiError(
         0,
-        `Server tidak merespons dalam ${Math.round(timeoutMs / 1000)} detik.`,
-        "TIMEOUT",
+        "Koneksi internet Anda sedang lambat atau tidak stabil. Periksa jaringan internet dan coba kembali.",
+        "NETWORK_TIMEOUT",
       );
     }
 
