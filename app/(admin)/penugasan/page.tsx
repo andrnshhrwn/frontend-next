@@ -3,7 +3,6 @@
 import { AlertCircle, X } from "lucide-react";
 import { useState } from "react";
 
-import PageSkeleton from "@/components/layouts/PageSkeleton";
 import { useToast } from "@/components/ui";
 
 import {
@@ -27,6 +26,7 @@ import { usePenugasanModals } from "@/hooks/modules/penugasan/usePenugasanModals
 
 import { ITEMS_PER_PAGE } from "@/utils/penugasan.utils";
 import { useAuthStore } from "@/lib/auth/auth-store";
+import AppLoader from "@/components/ui/AppLoader";
 
 export default function PenugasanPusatPage() {
   const { showToast } = useToast();
@@ -136,7 +136,7 @@ export default function PenugasanPusatPage() {
   /* ---------------------------------------------------------------- */
 
   if (authLoading) {
-    return <PageSkeleton />;
+    return <AppLoader />;
   }
 
   if (authStatus === "error") {

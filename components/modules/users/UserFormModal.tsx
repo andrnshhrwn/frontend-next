@@ -234,8 +234,8 @@ export default function UserFormModal({
           </button>
 
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
+            form="user-form-modal"
             disabled={
               loading ||
               !fullname.trim() ||
@@ -261,7 +261,14 @@ export default function UserFormModal({
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <form
+        id="user-form-modal"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit();
+        }}
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+      >
         <div className="sm:col-span-2">
           <label className={labelCls}>Nama Lengkap</label>
           <input
@@ -379,7 +386,7 @@ export default function UserFormModal({
             {error}
           </p>
         )}
-      </div>
+      </form>
     </Modal>
   );
 }

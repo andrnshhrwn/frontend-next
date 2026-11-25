@@ -5,7 +5,7 @@ import Sidebar from "@/components/layouts/Sidebar";
 import Header from "@/components/layouts/Header";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import PageSkeleton from "./PageSkeleton";
+import AppLoader from "../ui/AppLoader";
 
 export function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   return (
@@ -65,7 +65,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto overscroll-contain bg-pdam-bg p-4 sm:p-6 lg:p-8">
           <div className="mx-auto w-full max-w-350">
-            <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
+            <Suspense fallback={<AppLoader />}>{children}</Suspense>
           </div>
         </main>
       </div>
