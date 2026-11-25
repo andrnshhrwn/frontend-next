@@ -14,9 +14,14 @@ type Ctx = { params: Promise<{ path: string[] }> };
 
 function sessionExpired() {
   const out = NextResponse.json(
-    { status: "error", code: "SESSION_EXPIRED", message: "Sesi berakhir." },
+    {
+      status: "error",
+      code: "SESSION_EXPIRED",
+      message: "Sesi berakhir.",
+    },
     { status: 401 },
   );
+
   clearAuthCookies(out);
   return out;
 }
@@ -39,16 +44,18 @@ async function handler(req: Request, ctx: Ctx) {
   let renewed: RefreshedTokens | null = null;
 
   try {
-    // Cookie access habis tetapi refresh token masih ada -> refresh dulu
     if (!access && refreshCookie) {
       renewed = await refreshTokens(refreshCookie);
+
       if (!renewed) return sessionExpired();
+
       access = renewed.token;
     }
 
     const url = new URL(req.url);
     const hasBody = req.method !== "GET" && req.method !== "HEAD";
     const data = hasBody ? Buffer.from(await req.arrayBuffer()) : undefined;
+
     const contentType = req.headers.get("content-type");
 
     const forward = (token?: string) =>
@@ -67,7 +74,6 @@ async function handler(req: Request, ctx: Ctx) {
 
     let res = await forward(access);
 
-    // Backend menyatakan access token kedaluwarsa -> refresh, ulangi sekali
     if (
       res.status === 401 &&
       refreshCookie &&
@@ -75,7 +81,9 @@ async function handler(req: Request, ctx: Ctx) {
       readCode(res.data) === "TOKEN_EXPIRED"
     ) {
       renewed = await refreshTokens(refreshCookie);
+
       if (!renewed) return sessionExpired();
+
       res = await forward(renewed.token);
     }
 
@@ -85,15 +93,32 @@ async function handler(req: Request, ctx: Ctx) {
     const contentTypeOut =
       typeof upstreamType === "string" ? upstreamType : "application/json";
 
-    const out = new NextResponse(noBody ? null : res.data, {
-      status: res.status,
-      headers: {
-        "Content-Type": contentTypeOut,
-        "Cache-Control": "no-store",
-      },
+    const headers = new Headers({
+      "Content-Type": contentTypeOut,
+      "Cache-Control": "no-store",
     });
 
-    if (renewed) setAuthCookies(out, renewed, remember);
+    // Pertahankan nama file dari backend untuk unduhan Excel.
+    const contentDisposition = res.headers["content-disposition"];
+
+    if (typeof contentDisposition === "string") {
+      headers.set("Content-Disposition", contentDisposition);
+    }
+
+    const contentLength = res.headers["content-length"];
+
+    if (typeof contentLength === "string") {
+      headers.set("Content-Length", contentLength);
+    }
+
+    const out = new NextResponse(noBody ? null : res.data, {
+      status: res.status,
+      headers,
+    });
+
+    if (renewed) {
+      setAuthCookies(out, renewed, remember);
+    }
 
     return out;
   } catch {

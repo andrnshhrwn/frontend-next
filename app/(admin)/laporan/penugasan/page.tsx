@@ -31,7 +31,10 @@ export default function LaporanPenugasanPage() {
     page: 1,
     limit: 10,
   });
+
   const [selected, setSelected] = useState<PenugasanItem | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const { result, loading, error, reload } = useLaporan<
     PenugasanItem,
@@ -39,6 +42,50 @@ export default function LaporanPenugasanPage() {
   >(laporanService.penugasan, filters);
 
   const s = result?.data.summary;
+
+  const handleExport = () => {
+    if (exporting) return;
+
+    setExporting(true);
+    setExportError(null);
+
+    try {
+      const params = new URLSearchParams();
+
+      // Kirim filter aktif tanpa parameter pagination.
+      Object.entries(filters).forEach(([key, value]) => {
+        if (
+          key === "page" ||
+          key === "limit" ||
+          value === undefined ||
+          value === null ||
+          value === "" ||
+          value === "all"
+        ) {
+          return;
+        }
+
+        params.set(key, String(value));
+      });
+
+      const query = params.toString();
+      const exportUrl = `/api/proxy/laporan/penugasan/export${
+        query ? `?${query}` : ""
+      }`;
+
+      // Browser mengunduh file menggunakan cookie HTTP-only.
+      const link = document.createElement("a");
+      link.href = exportUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setExportError("Gagal memulai unduhan Excel. Silakan coba kembali.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -62,6 +109,12 @@ export default function LaporanPenugasanPage() {
         </div>
       )}
 
+      {exportError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          {exportError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Penugasan"
@@ -70,6 +123,7 @@ export default function LaporanPenugasanPage() {
           icon={<ClipboardList className="h-5 w-5" />}
           variant="navy"
         />
+
         <StatCard
           title="Pending"
           value={formatNumber(s?.per_status.pending ?? 0)}
@@ -77,6 +131,7 @@ export default function LaporanPenugasanPage() {
           icon={<Clock className="h-5 w-5" />}
           variant="red"
         />
+
         <StatCard
           title="Proses"
           value={formatNumber(s?.per_status.proses ?? 0)}
@@ -84,6 +139,7 @@ export default function LaporanPenugasanPage() {
           icon={<Loader className="h-5 w-5" />}
           variant="primary"
         />
+
         <StatCard
           title="Selesai"
           value={formatNumber(s?.per_status.selesai ?? 0)}
@@ -96,7 +152,13 @@ export default function LaporanPenugasanPage() {
       <LaporanFilterBar
         value={filters}
         onChange={setFilters}
-        extra={{ key: "status", label: "Status", options: STATUS_OPTIONS }}
+        onExport={handleExport}
+        exporting={exporting}
+        extra={{
+          key: "status",
+          label: "Status",
+          options: STATUS_OPTIONS,
+        }}
       />
 
       <LaporanTable<PenugasanItem>
@@ -142,7 +204,10 @@ export default function LaporanPenugasanPage() {
               </span>
             ),
           },
-          { header: "Alasan", render: (r) => r.alasan },
+          {
+            header: "Alasan",
+            render: (r) => r.alasan,
+          },
           {
             header: "Teknisi",
             render: (r) => r.teknisi?.fullname ?? "-",
@@ -170,19 +235,34 @@ export default function LaporanPenugasanPage() {
                   label: "Status",
                   value: <LaporanBadge value={selected.status} />,
                 },
-                { label: "Pelanggan", value: selected.pelanggan.nama },
+                {
+                  label: "Pelanggan",
+                  value: selected.pelanggan.nama,
+                },
                 {
                   label: "ID Pelanggan PDAM",
                   value: selected.pelanggan.id_pelanggan_pdam,
                 },
-                { label: "Alamat", value: selected.pelanggan.alamat },
-                { label: "Unit", value: selected.unit.nama_unit },
-                { label: "Dibuat Oleh", value: selected.pembuat.fullname },
+                {
+                  label: "Alamat",
+                  value: selected.pelanggan.alamat,
+                },
+                {
+                  label: "Unit",
+                  value: selected.unit.nama_unit,
+                },
+                {
+                  label: "Dibuat Oleh",
+                  value: selected.pembuat.fullname,
+                },
                 {
                   label: "Teknisi",
                   value: selected.teknisi?.fullname ?? "Belum ditugaskan",
                 },
-                { label: "Alasan", value: selected.alasan },
+                {
+                  label: "Alasan",
+                  value: selected.alasan,
+                },
               ]
             : []
         }

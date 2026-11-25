@@ -22,7 +22,10 @@ export default function LaporanPengirimanPage() {
     page: 1,
     limit: 10,
   });
+
   const [selected, setSelected] = useState<PengirimanItem | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const { result, loading, error, reload } = useLaporan<
     PengirimanItem,
@@ -30,6 +33,50 @@ export default function LaporanPengirimanPage() {
   >(laporanService.pengiriman, filters);
 
   const summary = result?.data.summary;
+
+  const handleExport = () => {
+    if (exporting) return;
+
+    setExporting(true);
+    setExportError(null);
+
+    try {
+      const params = new URLSearchParams();
+
+      // Kirim filter aktif tanpa parameter pagination.
+      Object.entries(filters).forEach(([key, value]) => {
+        if (
+          key === "page" ||
+          key === "limit" ||
+          value === undefined ||
+          value === null ||
+          value === "" ||
+          value === "all"
+        ) {
+          return;
+        }
+
+        params.set(key, String(value));
+      });
+
+      const query = params.toString();
+      const exportUrl = `/api/proxy/laporan/pengiriman-wm/export${
+        query ? `?${query}` : ""
+      }`;
+
+      // Browser mengunduh file menggunakan cookie HTTP-only.
+      const link = document.createElement("a");
+      link.href = exportUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setExportError("Gagal memulai unduhan Excel. Silakan coba kembali.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -53,6 +100,12 @@ export default function LaporanPengirimanPage() {
         </div>
       )}
 
+      {exportError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          {exportError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
           title="Total Pengiriman"
@@ -61,6 +114,7 @@ export default function LaporanPengirimanPage() {
           icon={<Truck className="h-5 w-5" />}
           variant="navy"
         />
+
         <StatCard
           title="Total WM Dikirim"
           value={formatNumber(summary?.total_wm ?? 0)}
@@ -70,7 +124,12 @@ export default function LaporanPengirimanPage() {
         />
       </div>
 
-      <LaporanFilterBar value={filters} onChange={setFilters} />
+      <LaporanFilterBar
+        value={filters}
+        onChange={setFilters}
+        onExport={handleExport}
+        exporting={exporting}
+      />
 
       <LaporanTable<PengirimanItem>
         rows={result?.data.items ?? []}
@@ -144,7 +203,10 @@ export default function LaporanPengirimanPage() {
                   label: "Tanggal Pengiriman",
                   value: formatTanggal(selected.tgl_pengiriman),
                 },
-                { label: "Unit Tujuan", value: selected.unit_tujuan.nama_unit },
+                {
+                  label: "Unit Tujuan",
+                  value: selected.unit_tujuan.nama_unit,
+                },
                 {
                   label: "Dicatat Oleh",
                   value: selected.user_pencatat.fullname,
@@ -168,6 +230,7 @@ export default function LaporanPengirimanPage() {
                     <th className="px-3 py-2 text-right">Jumlah</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-100">
                   {selected.details.map((d) => (
                     <tr key={d.id_detail}>

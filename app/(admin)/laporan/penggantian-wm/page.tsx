@@ -32,7 +32,10 @@ export default function LaporanPenggantianPage() {
     page: 1,
     limit: 10,
   });
+
   const [selected, setSelected] = useState<PenggantianItem | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const { result, loading, error, reload } = useLaporan<
     PenggantianItem,
@@ -40,6 +43,50 @@ export default function LaporanPenggantianPage() {
   >(laporanService.penggantian, filters);
 
   const s = result?.data.summary;
+
+  const handleExport = () => {
+    if (exporting) return;
+
+    setExporting(true);
+    setExportError(null);
+
+    try {
+      const params = new URLSearchParams();
+
+      // Kirim filter aktif tanpa parameter pagination.
+      Object.entries(filters).forEach(([key, value]) => {
+        if (
+          key === "page" ||
+          key === "limit" ||
+          value === undefined ||
+          value === null ||
+          value === "" ||
+          value === "all"
+        ) {
+          return;
+        }
+
+        params.set(key, String(value));
+      });
+
+      const query = params.toString();
+      const exportUrl = `/api/proxy/laporan/penggantian-wm/export${
+        query ? `?${query}` : ""
+      }`;
+
+      // Browser mengunduh file menggunakan cookie HTTP-only.
+      const link = document.createElement("a");
+      link.href = exportUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setExportError("Gagal memulai unduhan Excel. Silakan coba kembali.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -63,6 +110,12 @@ export default function LaporanPenggantianPage() {
         </div>
       )}
 
+      {exportError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          {exportError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total BAP"
@@ -71,6 +124,7 @@ export default function LaporanPenggantianPage() {
           icon={<ClipboardCheck className="h-5 w-5" />}
           variant="navy"
         />
+
         <StatCard
           title="Menunggu Validasi"
           value={formatNumber(s?.per_status_validasi.menunggu ?? 0)}
@@ -78,6 +132,7 @@ export default function LaporanPenggantianPage() {
           icon={<Clock className="h-5 w-5" />}
           variant="red"
         />
+
         <StatCard
           title="Disetujui"
           value={formatNumber(s?.per_status_validasi.disetujui ?? 0)}
@@ -85,6 +140,7 @@ export default function LaporanPenggantianPage() {
           icon={<CheckCircle2 className="h-5 w-5" />}
           variant="emerald"
         />
+
         <StatCard
           title="Ditolak"
           value={formatNumber(s?.per_status_validasi.ditolak ?? 0)}
@@ -97,6 +153,8 @@ export default function LaporanPenggantianPage() {
       <LaporanFilterBar
         value={filters}
         onChange={setFilters}
+        onExport={handleExport}
+        exporting={exporting}
         extra={{
           key: "status_validasi",
           label: "Validasi",
@@ -166,7 +224,10 @@ export default function LaporanPenggantianPage() {
               </>
             ),
           },
-          { header: "Teknisi", render: (r) => r.teknisi.fullname },
+          {
+            header: "Teknisi",
+            render: (r) => r.teknisi.fullname,
+          },
           {
             header: "Validasi",
             render: (r) => (
@@ -204,10 +265,22 @@ export default function LaporanPenggantianPage() {
                   label: "ID Pelanggan PDAM",
                   value: selected.penugasan.pelanggan.id_pelanggan_pdam,
                 },
-                { label: "Alamat", value: selected.penugasan.pelanggan.alamat },
-                { label: "Unit", value: selected.penugasan.unit.nama_unit },
-                { label: "Teknisi", value: selected.teknisi.fullname },
-                { label: "Merk WM Baru", value: selected.merk?.merk_wm ?? "-" },
+                {
+                  label: "Alamat",
+                  value: selected.penugasan.pelanggan.alamat,
+                },
+                {
+                  label: "Unit",
+                  value: selected.penugasan.unit.nama_unit,
+                },
+                {
+                  label: "Teknisi",
+                  value: selected.teknisi.fullname,
+                },
+                {
+                  label: "Merk WM Baru",
+                  value: selected.merk?.merk_wm ?? "-",
+                },
                 {
                   label: "No. Seri WM Lama",
                   value: selected.no_seri_wm_lama ?? "-",
