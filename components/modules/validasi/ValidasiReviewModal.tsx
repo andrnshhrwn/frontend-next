@@ -389,7 +389,7 @@ export default function ValidasiReviewModal({
 
                   <tr>
                     <td className="py-2.5 pl-4 font-bold text-slate-500">
-                      WM Aktif Sebelumnya
+                      WM Aktif
                     </td>
 
                     <td className="py-2.5 font-sans" colSpan={2}>
