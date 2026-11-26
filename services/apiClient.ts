@@ -2,7 +2,7 @@ import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
 // Hanya untuk URL aset (mis. gambar /uploads). Request data lewat proxy.
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+  process.env.API_BASE_URL || "http://localhost:8000/api/v1";
 
 const PROXY_BASE_URL = "/api/proxy";
 const USER_KEY = "pdam_user";
